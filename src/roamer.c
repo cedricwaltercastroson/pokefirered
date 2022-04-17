@@ -100,9 +100,9 @@ void CreateInitialRoamerMon(void)
 {
     struct Pokemon * mon = &gEnemyParty[0];
     u16 species = GetRoamerSpecies();
-    CreateMon(mon, species, 50, USE_RANDOM_IVS, FALSE, 0, OT_ID_PLAYER_ID, 0);
+    CreateMon(mon, species, 100, USE_RANDOM_IVS, FALSE, 0, OT_ID_PLAYER_ID, 0);
     ROAMER->species = species;
-    ROAMER->level = 50;
+    ROAMER->level = 100;
     ROAMER->status = 0;
     ROAMER->active = TRUE;
     ROAMER->ivs = GetMonData(mon, MON_DATA_IVS);
@@ -206,6 +206,8 @@ bool8 IsRoamerAt(u8 mapGroup, u8 mapNum)
 void CreateRoamerMonInstance(void)
 {
     u32 status;
+    bool32 isEventLegal = TRUE;
+
     struct Pokemon *mon = &gEnemyParty[0];
     ZeroEnemyPartyMons();
     CreateMonWithIVsPersonality(mon, ROAMER->species, ROAMER->level, ROAMER->ivs, ROAMER->personality);
@@ -223,6 +225,7 @@ void CreateRoamerMonInstance(void)
     SetMonData(mon, MON_DATA_CUTE, &ROAMER->cute);
     SetMonData(mon, MON_DATA_SMART, &ROAMER->smart);
     SetMonData(mon, MON_DATA_TOUGH, &ROAMER->tough);
+    SetMonData(mon, MON_DATA_EVENT_LEGAL, &isEventLegal);
 }
 
 bool8 TryStartRoamerEncounter(void)
