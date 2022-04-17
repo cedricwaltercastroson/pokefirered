@@ -33,3 +33,28 @@ FuchsiaCity_House3_Text_NoEggShouldKnowMoves:: @ 819951F
     .string "What?\n"
     .string "No EGG should know any moves.$"
 
+FuchsiaCity_House3_Text_WantMeToTeachMove:: @ 81A2C63
+    .string "I'm the POKéMON MOVE MANIAC.\p"
+    .string "I know every single move that\n"
+    .string "POKéMON learn growing up.\p"
+    .string "Do you want me to teach a move\n"
+    .string "to a POKéMON of yours?$"
+
+FuchsiaCity_House3_Text_TutorWhichMon:: @ 81A2CC3
+    .string "Which POKéMON needs tutoring?$"
+
+FuchsiaCity_House3_Text_TeachWhichMove:: @ 81A2CE1
+    .string "Which move should I teach?$"
+
+FuchsiaCity_House3_Text_NoMoveICanTeachThatMon:: @ 81A2CFC
+    .string "Sorry…\p"
+    .string "It doesn't appear as if I have a\n"
+    .string "move I can teach that POKéMON.$"
+
+FuchsiaCity_House3_Text_CantTeachAnEgg:: @ 81A2E20
+    .string "Hunh? There isn't a single move\n"
+    .string "that I can teach an EGG.$"
+
+FuchsiaCity_House3_Text_EndToLearnMove:: @ 81A2DE0
+    .string "If your POKéMON need to learn a\n"
+    .string "move, Let me know.$"

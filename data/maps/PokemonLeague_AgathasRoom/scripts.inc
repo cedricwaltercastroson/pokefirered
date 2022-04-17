@@ -11,7 +11,7 @@ PokemonLeague_AgathasRoom_OnResume:: @ 8162825
 	end
 
 PokemonLeague_AgathasRoom_OnLoad:: @ 8162830
-	call_if_set FLAG_DEFEATED_AGATHA, PokemonLeague_AgathasRoom_EventScript_SetDoorOpen
+	clearflag FLAG_DEFEATED_AGATHA
 	compare VAR_MAP_SCENE_POKEMON_LEAGUE, 3
 	call_if_eq PokemonLeague_AgathasRoom_EventScript_CloseEntry
 	end
@@ -51,12 +51,10 @@ PokemonLeague_AgathasRoom_EventScript_Agatha:: @ 8162877
 	famechecker FAMECHECKER_AGATHA, 0
 	famechecker FAMECHECKER_AGATHA, 4
 	famechecker FAMECHECKER_OAK, 4
-	call_if_unset FLAG_SYS_GAME_CLEAR, PokemonLeague_AgathasRoom_EventScript_Intro
-	call_if_set FLAG_SYS_GAME_CLEAR, PokemonLeague_AgathasRoom_EventScript_RematchIntro
+	call_if_unset FLAG_DEFEATED_AGATHA, PokemonLeague_AgathasRoom_EventScript_Intro
 	setflag FLAG_TEMP_3
 	setflag FLAG_TEMP_5
-	call_if_unset FLAG_SYS_CAN_LINK_WITH_RS, PokemonLeague_AgathasRoom_EventScript_Battle
-	call_if_set FLAG_SYS_CAN_LINK_WITH_RS, PokemonLeague_AgathasRoom_EventScript_Rematch
+	call_if_unset FLAG_DEFEATED_AGATHA, PokemonLeague_AgathasRoom_EventScript_Battle
 	clearflag FLAG_TEMP_5
 	goto PokemonLeague_AgathasRoom_EventScript_DefeatedAgatha
 	end

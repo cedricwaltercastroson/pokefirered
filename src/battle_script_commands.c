@@ -8986,6 +8986,9 @@ static void atkEE_removelightscreenreflect(void) // brick break
 static void atkEF_handleballthrow(void)
 {
     u8 ballMultiplier = 0;
+    u16 ball;
+
+    ball = ITEM_POKE_BALL;
 
     if (!gBattleControllerExecFlags)
     {
@@ -9089,7 +9092,14 @@ static void atkEF_handleballthrow(void)
                 BtlController_EmitBallThrowAnim(0, BALL_3_SHAKES_SUCCESS);
                 MarkBattlerForControllerExec(gActiveBattler);
                 gBattlescriptCurrInstr = BattleScript_SuccessBallThrow;
-                SetMonData(&gEnemyParty[gBattlerPartyIndexes[gBattlerTarget]], MON_DATA_POKEBALL, &gLastUsedItem);
+                if(gLastUsedItem == ITEM_MASTER_BALL)
+                {
+                    SetMonData(&gEnemyParty[gBattlerPartyIndexes[gBattlerTarget]], MON_DATA_POKEBALL, &gLastUsedItem);
+                }
+                else
+                {
+                    SetMonData(&gEnemyParty[gBattlerPartyIndexes[gBattlerTarget]], MON_DATA_POKEBALL, &ball);
+                }
                 if (CalculatePlayerPartyCount() == 6)
                     gBattleCommunication[MULTISTRING_CHOOSER] = 0;
                 else
@@ -9109,7 +9119,14 @@ static void atkEF_handleballthrow(void)
                 if (shakes == BALL_3_SHAKES_SUCCESS) // mon caught, copy of the code above
                 {
                     gBattlescriptCurrInstr = BattleScript_SuccessBallThrow;
-                    SetMonData(&gEnemyParty[gBattlerPartyIndexes[gBattlerTarget]], MON_DATA_POKEBALL, &gLastUsedItem);
+                    if(gLastUsedItem == ITEM_MASTER_BALL)
+                    {
+                        SetMonData(&gEnemyParty[gBattlerPartyIndexes[gBattlerTarget]], MON_DATA_POKEBALL, &gLastUsedItem);
+                    }
+                    else
+                    {
+                        SetMonData(&gEnemyParty[gBattlerPartyIndexes[gBattlerTarget]], MON_DATA_POKEBALL, &ball);
+                    }
                     if (CalculatePlayerPartyCount() == 6)
                         gBattleCommunication[MULTISTRING_CHOOSER] = 0;
                     else

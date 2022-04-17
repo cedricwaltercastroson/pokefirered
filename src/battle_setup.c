@@ -349,14 +349,9 @@ void StartLegendaryBattle(void)
     case SPECIES_MEWTWO:
         CreateBattleStartTask(B_TRANSITION_BLUR, MUS_VS_MEWTWO);
         break;
-    case SPECIES_DEOXYS:
-        CreateBattleStartTask(B_TRANSITION_BLUR, MUS_VS_DEOXYS);
-        break;
     case SPECIES_MOLTRES:
     case SPECIES_ARTICUNO:
     case SPECIES_ZAPDOS:
-    case SPECIES_HO_OH:
-    case SPECIES_LUGIA:
         CreateBattleStartTask(B_TRANSITION_BLUR, MUS_VS_LEGEND);
         break;
     default:
@@ -420,6 +415,7 @@ static void CB2_EndWildBattle(void)
     else
     {
         SetMainCallback2(CB2_ReturnToField);
+        RefillMovesPlayerParty();
         gFieldCallback = FieldCB_SafariZoneRanOutOfBalls;
     }
 }
@@ -432,6 +428,7 @@ static void CB2_EndScriptedWildBattle(void)
         SetMainCallback2(CB2_WhiteOut);
     else
         SetMainCallback2(CB2_ReturnToFieldContinueScriptPlayMapMusic);
+        RefillMovesPlayerParty();
 }
 
 static void CB2_EndMarowakBattle(void)
@@ -446,10 +443,15 @@ static void CB2_EndMarowakBattle(void)
     {
         // If result is TRUE player didnt defeat Marowak, force player back from stairs
         if (gBattleOutcome == B_OUTCOME_WON)
+        {
             gSpecialVar_Result = FALSE;
+        }
         else
+        {
             gSpecialVar_Result = TRUE;
+        }
         SetMainCallback2(CB2_ReturnToFieldContinueScriptPlayMapMusic);
+        RefillMovesPlayerParty();
     }
 }
 
@@ -916,6 +918,7 @@ static void CB2_EndTrainerBattle(void)
         {
             gSpecialVar_Result = FALSE;
             SetMainCallback2(CB2_ReturnToFieldContinueScriptPlayMapMusic);
+            RefillMovesPlayerParty();
             SetBattledTrainerFlag();
             QuestLogEvents_HandleEndTrainerBattle();
         }
@@ -926,6 +929,7 @@ static void CB2_EndTrainerBattle(void)
         if (gTrainerBattleOpponent_A == TRAINER_SECRET_BASE)
         {
             SetMainCallback2(CB2_ReturnToFieldContinueScriptPlayMapMusic);
+            RefillMovesPlayerParty();
         }
         else if (IsPlayerDefeated(gBattleOutcome) == TRUE)
         {
@@ -934,6 +938,7 @@ static void CB2_EndTrainerBattle(void)
         else
         {
             SetMainCallback2(CB2_ReturnToFieldContinueScriptPlayMapMusic);
+            RefillMovesPlayerParty();
             SetBattledTrainerFlag();
             QuestLogEvents_HandleEndTrainerBattle();
         }
@@ -945,6 +950,7 @@ static void CB2_EndRematchBattle(void)
     if (gTrainerBattleOpponent_A == TRAINER_SECRET_BASE)
     {
         SetMainCallback2(CB2_ReturnToFieldContinueScriptPlayMapMusic);
+        RefillMovesPlayerParty();
     }
     else if (IsPlayerDefeated(gBattleOutcome) == TRUE)
     {
@@ -953,6 +959,7 @@ static void CB2_EndRematchBattle(void)
     else
     {
         SetMainCallback2(CB2_ReturnToFieldContinueScriptPlayMapMusic);
+        RefillMovesPlayerParty();
         SetBattledTrainerFlag();
         ClearRematchStateOfLastTalked();
         ResetDeferredLinkEvent();

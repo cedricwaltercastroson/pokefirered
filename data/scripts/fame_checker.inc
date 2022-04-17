@@ -135,31 +135,6 @@ CinnabarIsland_Gym_EventScript_BlaineFujiPhoto:: @ 81ACF07
 	releaseall
 	end
 
-FiveIsland_ResortGorgeous_House_EventScript_PokemonJournal:: @ 81ACF2C
-	lockall
-	famechecker FAMECHECKER_BLAINE, 5
-	textcolor 3
-	msgbox PokemonJournal_Text_SpecialFeatureBlaine
-	releaseall
-	end
-
-FourIsland_Mart_EventScript_OldMan:: @ 81ACF46
-	lock
-	faceplayer
-	famechecker FAMECHECKER_LORELEI, 2
-	msgbox FourIsland_Mart_Text_LoreleiGrewUpOnThisIsland
-	release
-	end
-
-FiveIsland_PokemonCenter_1F_EventScript_PokemonJournal:: @ 81ACF5F
-	lock
-	faceplayer
-	famechecker FAMECHECKER_LORELEI, 3
-	textcolor 3
-	msgbox PokemonJournal_Text_SpecialFeatureLorelei
-	release
-	end
-
 SaffronCity_PokemonTrainerFanClub_EventScript_PokemonJournalBruno:: @ 81ACF7A
 	lock
 	faceplayer
@@ -169,37 +144,12 @@ SaffronCity_PokemonTrainerFanClub_EventScript_PokemonJournalBruno:: @ 81ACF7A
 	release
 	end
 
-SevenIsland_SevaultCanyon_EventScript_BlackBelt:: @ 81ACF95
-	lock
-	faceplayer
-	famechecker FAMECHECKER_BRUNO, 5
-	msgbox SevenIsland_SevaultCanyon_Text_BrunoTrainedWithBrawly
-	release
-	end
-
 IndigoPlateau_PokemonCenter_1F_EventScript_BlackBelt:: @ 81ACFAE
 	lock
 	faceplayer
 	famechecker FAMECHECKER_AGATHA, 1
 	famechecker FAMECHECKER_AGATHA, 2
 	msgbox IndigoPlateau_PokemonCenter_1F_Text_AgathaWhuppedUs
-	release
-	end
-
-SevenIsland_PokemonCenter_1F_EventScript_PokemonJournal:: @ 81ACFD4
-	lock
-	faceplayer
-	famechecker FAMECHECKER_AGATHA, 3
-	textcolor 3
-	msgbox PokemonJournal_Text_SpecialFeatureAgatha
-	release
-	end
-
-SixIsland_Mart_EventScript_OldWoman:: @ 81ACFEF
-	lock
-	faceplayer
-	famechecker FAMECHECKER_AGATHA, 5
-	msgbox SixIsland_Mart_Text_AgathaOldestEverEliteFourMember
 	release
 	end
 

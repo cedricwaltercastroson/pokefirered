@@ -14,6 +14,7 @@ PokemonLeague_LancesRoom_OnResume:: @ 8162942
 
 PokemonLeague_LancesRoom_OnLoad:: @ 816294D
 	compare VAR_MAP_SCENE_POKEMON_LEAGUE, 4
+	clearflag FLAG_DEFEATED_LANCE
 	call_if_eq PokemonLeague_LancesRoom_EventScript_CloseEntry
 	call_if_set FLAG_DEFEATED_LANCE, PokemonLeague_LancesRoom_EventScript_SetDoorOpen
 	end
@@ -106,12 +107,10 @@ PokemonLeague_LancesRoom_EventScript_Lance:: @ 8162A14
 	goto_if_set FLAG_DEFEATED_LANCE, PokemonLeague_LancesRoom_EventScript_PostBattle
 	famechecker FAMECHECKER_LANCE, 0
 	famechecker FAMECHECKER_LANCE, 1
-	call_if_unset FLAG_SYS_GAME_CLEAR, PokemonLeague_LancesRoom_EventScript_Intro
-	call_if_set FLAG_SYS_GAME_CLEAR, PokemonLeague_LancesRoom_EventScript_RematchIntro
+	call_if_unset FLAG_DEFEATED_LANCE, PokemonLeague_LancesRoom_EventScript_Intro
 	setflag FLAG_TEMP_3
 	setflag FLAG_TEMP_5
-	call_if_unset FLAG_SYS_CAN_LINK_WITH_RS, PokemonLeague_LancesRoom_EventScript_Battle
-	call_if_set FLAG_SYS_CAN_LINK_WITH_RS, PokemonLeague_LancesRoom_EventScript_Rematch
+	call_if_unset FLAG_DEFEATED_LANCE, PokemonLeague_LancesRoom_EventScript_Battle
 	clearflag FLAG_TEMP_5
 	goto PokemonLeague_LancesRoom_EventScript_DefeatedLance
 	end

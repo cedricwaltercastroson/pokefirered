@@ -133,10 +133,7 @@ static void MainCB2_SetUp(void)
     case 7:
         EnableDisplay();
         SetVBlankCallback(VBlankCB);
-        if (gSpecialVar_0x8004)
-            PrintTrainerTowerRecords();
-        else
-            PrintBattleRecords();
+        PrintBattleRecords();
         CreateTask(Task_WaitFadeIn, 8);
         SetMainCallback2(MainCB2);
         gMain.state = 0;

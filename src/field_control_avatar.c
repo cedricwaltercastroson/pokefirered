@@ -535,8 +535,6 @@ static const u8 *GetInteractedMetatileScript(struct MapPosition *position, u8 me
         return EventScript_Burglary;
     if (MetatileBehavior_IsComputer(metatileBehavior) == TRUE)
         return EventScript_Computer;
-    if (MetatileBehavior_IsTrainerTowerMonitor(metatileBehavior) == TRUE)
-        return TrainerTower_EventScript_ShowTime;
     if (MetatileBehavior_IsPlayerFacingTVScreen(metatileBehavior, direction) == TRUE)
         return EventScript_PlayerFacingTVScreen;
     if (MetatileBehavior_IsCabinet(metatileBehavior) == TRUE)

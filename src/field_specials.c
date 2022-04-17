@@ -903,26 +903,6 @@ void GetElevatorFloor(void)
             break;
         }
     }
-    if (gSaveBlock1Ptr->dynamicWarp.mapGroup == MAP_GROUP(TRAINER_TOWER_1F))
-    {
-        switch (gSaveBlock1Ptr->dynamicWarp.mapNum)
-        {
-        case MAP_NUM(TRAINER_TOWER_1F):
-        case MAP_NUM(TRAINER_TOWER_2F):
-        case MAP_NUM(TRAINER_TOWER_3F):
-        case MAP_NUM(TRAINER_TOWER_4F):
-        case MAP_NUM(TRAINER_TOWER_5F):
-        case MAP_NUM(TRAINER_TOWER_6F):
-        case MAP_NUM(TRAINER_TOWER_7F):
-        case MAP_NUM(TRAINER_TOWER_8F):
-        case MAP_NUM(TRAINER_TOWER_ROOF):
-            floor = 15;
-            break;
-        case MAP_NUM(TRAINER_TOWER_LOBBY):
-            floor = 3;
-            break;
-        }
-    }
     VarSet(VAR_ELEVATOR_FLOOR, floor);
 }
 
@@ -1016,28 +996,6 @@ u16 InitElevatorFloorSelectMenuPos(void)
         case MAP_NUM(CELADON_CITY_DEPARTMENT_STORE_1F):
             sElevatorScroll = 0;
             sElevatorCursorPos = 4;
-            break;
-        }
-    }
-    if (gSaveBlock1Ptr->dynamicWarp.mapGroup == MAP_GROUP(TRAINER_TOWER_1F))
-    {
-        switch (gSaveBlock1Ptr->dynamicWarp.mapNum)
-        {
-        case MAP_NUM(TRAINER_TOWER_1F):
-        case MAP_NUM(TRAINER_TOWER_2F):
-        case MAP_NUM(TRAINER_TOWER_3F):
-        case MAP_NUM(TRAINER_TOWER_4F):
-        case MAP_NUM(TRAINER_TOWER_5F):
-        case MAP_NUM(TRAINER_TOWER_6F):
-        case MAP_NUM(TRAINER_TOWER_7F):
-        case MAP_NUM(TRAINER_TOWER_8F):
-        case MAP_NUM(TRAINER_TOWER_ROOF):
-            sElevatorScroll = 0;
-            sElevatorCursorPos = 0;
-            break;
-        case MAP_NUM(TRAINER_TOWER_LOBBY):
-            sElevatorScroll = 0;
-            sElevatorCursorPos = 1;
             break;
         }
     }
@@ -1776,11 +1734,7 @@ static const u8 sMartMaps[][3] = {
     {MAP(VERMILION_CITY_MART),  1},
     {MAP(FUCHSIA_CITY_MART),    1},
     {MAP(CINNABAR_ISLAND_MART), 1},
-    {MAP(SAFFRON_CITY_MART),    1},
-    {MAP(THREE_ISLAND_MART),    1},
-    {MAP(FOUR_ISLAND_MART),     1},
-    {MAP(SEVEN_ISLAND_MART),    1},
-    {MAP(SIX_ISLAND_MART),      1}
+    {MAP(SAFFRON_CITY_MART),    1}
 };
 
 u8 GetMartClerkObjectId(void)
@@ -2022,13 +1976,6 @@ const u16 sPokeCenter1FMaps[] = {
     MAP_SAFFRON_CITY_POKEMON_CENTER_1F,
     MAP_ROUTE4_POKEMON_CENTER_1F,
     MAP_ROUTE10_POKEMON_CENTER_1F,
-    MAP_ONE_ISLAND_POKEMON_CENTER_1F,
-    MAP_TWO_ISLAND_POKEMON_CENTER_1F,
-    MAP_THREE_ISLAND_POKEMON_CENTER_1F,
-    MAP_FOUR_ISLAND_POKEMON_CENTER_1F,
-    MAP_FIVE_ISLAND_POKEMON_CENTER_1F,
-    MAP_SEVEN_ISLAND_POKEMON_CENTER_1F,
-    MAP_SIX_ISLAND_POKEMON_CENTER_1F,
     MAP_UNION_ROOM,
     MAP_UNDEFINED
 };
@@ -2291,16 +2238,7 @@ bool8 HasLearnedAllMovesFromCapeBrinkTutor(void)
 
 bool8 CutMoveRuinValleyCheck(void)
 {
-    if (FlagGet(FLAG_USED_CUT_ON_RUIN_VALLEY_BRAILLE) != TRUE
-     && gSaveBlock1Ptr->location.mapGroup == MAP_GROUP(SIX_ISLAND_RUIN_VALLEY)
-     && gSaveBlock1Ptr->location.mapNum == MAP_NUM(SIX_ISLAND_RUIN_VALLEY)
-     && gSaveBlock1Ptr->pos.x == 24
-     && gSaveBlock1Ptr->pos.y == 25
-     && GetPlayerFacingDirection() == DIR_NORTH
-    )
-        return TRUE;
-    else
-        return FALSE;
+    return FALSE;
 }
 
 void CutMoveOpenDottedHoleDoor(void)
@@ -2433,15 +2371,7 @@ static void Task_WaitDeoxysFieldEffect(u8 taskId)
 
 void IncrementBirthIslandRockStepCount(void)
 {
-    u16 count = VarGet(VAR_DEOXYS_INTERACTION_STEP_COUNTER);
-    if (gSaveBlock1Ptr->location.mapGroup == MAP_GROUP(BIRTH_ISLAND_EXTERIOR) && gSaveBlock1Ptr->location.mapNum == MAP_NUM(BIRTH_ISLAND_EXTERIOR))
-    {
-        count++;
-        if (count > 99)
-            VarSet(VAR_DEOXYS_INTERACTION_STEP_COUNTER, 0);
-        else
-            VarSet(VAR_DEOXYS_INTERACTION_STEP_COUNTER, count);
-    }
+
 }
 
 void SetDeoxysTrianglePalette(void)
@@ -2465,10 +2395,7 @@ bool8 IsBadEggInParty(void)
 
 bool8 IsPlayerNotInTrainerTowerLobby(void)
 {
-    if (gSaveBlock1Ptr->location.mapGroup == MAP_GROUP(TRAINER_TOWER_LOBBY) && gSaveBlock1Ptr->location.mapNum == MAP_NUM(TRAINER_TOWER_LOBBY))
-        return FALSE;
-    else
-        return TRUE;
+    return TRUE;
 }
 
 void BrailleCursorToggle(void)

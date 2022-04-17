@@ -327,10 +327,7 @@ static const struct ListMenuItem sListMenuItems_KantoDexModeSelect[] = {
     {gText_DexCategory_UrbanPkmn,        DEX_CATEGORY_URBAN},
     {gText_DexCategory_RarePkmn,         DEX_CATEGORY_RARE},
     {gText_Search,                       LIST_HEADER},
-    {gText_AToZMode,                     DEX_MODE(ATOZ)},
     {gText_TypeMode,                     DEX_MODE(TYPE)},
-    {gText_LightestMode,                 DEX_MODE(LIGHTEST)},
-    {gText_SmallestMode,                 DEX_MODE(SMALLEST)},
     {gText_PokedexOther,                 LIST_HEADER},
     {gText_ClosePokedex,                 LIST_CANCEL},
 };
@@ -371,10 +368,7 @@ static const struct ListMenuItem sListMenuItems_NatDexModeSelect[] = {
     {gText_DexCategory_UrbanPkmn,        DEX_CATEGORY_URBAN},
     {gText_DexCategory_RarePkmn,         DEX_CATEGORY_RARE},
     {gText_Search,                       LIST_HEADER},
-    {gText_AToZMode,                     DEX_MODE(ATOZ)},
     {gText_TypeMode,                     DEX_MODE(TYPE)},
-    {gText_LightestMode,                 DEX_MODE(LIGHTEST)},
-    {gText_SmallestMode,                 DEX_MODE(SMALLEST)},
     {gText_PokedexOther,                 LIST_HEADER},
     {gText_ClosePokedex,                 LIST_CANCEL},
 };
@@ -470,21 +464,9 @@ static const struct PokedexScreenWindowGfx sTopMenuSelectionIconGfxPtrs[] = {
         .tiles = sTopMenuIconTiles_Numerical,
         .pal   = sTopMenuIconPals_Numerical
     },
-    [DEX_MODE(ATOZ)] = {
-        .tiles = gDexScreen_TopMenuIconTiles_AtoZ,
-        .pal   = gDexScreen_TopMenuIconPals_AtoZ
-    },
     [DEX_MODE(TYPE)] = {
         .tiles = sTopMenuIconTiles_Type,
         .pal   = sTopMenuIconPals_Type
-    },
-    [DEX_MODE(LIGHTEST)] = {
-        .tiles = sTopMenuIconTiles_Lightest,
-        .pal   = sTopMenuIconPals_Lightest
-    },
-    [DEX_MODE(SMALLEST)] = {
-        .tiles = sTopMenuIconTiles_Smallest,
-        .pal   = sTopMenuIconPals_Smallest
     },
     [DEX_MODE(NUMERICAL_NATIONAL)] = {
         .tiles = sTopMenuIconTiles_Numerical,
@@ -1065,10 +1047,7 @@ static void Task_PokedexScreen(u8 taskId)
                 BeginNormalPaletteFade(~0x8000, 0, 0, 16, RGB_WHITEALPHA);
                 sPokedexScreenData->state = 9;
                 break;
-            case DEX_MODE(ATOZ):
             case DEX_MODE(TYPE):
-            case DEX_MODE(LIGHTEST):
-            case DEX_MODE(SMALLEST):
                 RemoveScrollIndicatorArrowPair(sPokedexScreenData->scrollArrowsTaskId);
                 sPokedexScreenData->dexOrderId = sPokedexScreenData->modeSelectInput - DEX_CATEGORY_COUNT;
                 sPokedexScreenData->characteristicOrderMenuItemsAbove = sPokedexScreenData->characteristicOrderMenuCursorPos = 0;
@@ -1394,61 +1373,10 @@ static u16 DexScreen_CountMonsInOrderedList(u8 orderIdx)
             sPokedexScreenData->listItems[i].index = (caught << 17) + (seen << 16) + NationalPokedexNumToSpecies(ndex_num);
         }
         break;
-    case DEX_ORDER_ATOZ:
-        for (i = 0; i < NUM_SPECIES - 1; i++)
-        {
-            ndex_num = gPokedexOrder_Alphabetical[i];
-            if (ndex_num <= max_n)
-            {
-                seen = DexScreen_GetSetPokedexFlag(ndex_num, FLAG_GET_SEEN, FALSE);
-                caught = DexScreen_GetSetPokedexFlag(ndex_num, FLAG_GET_CAUGHT, FALSE);
-                if (seen)
-                {
-                    sPokedexScreenData->listItems[ret].label = gSpeciesNames[NationalPokedexNumToSpecies(ndex_num)];
-                    sPokedexScreenData->listItems[ret].index = (caught << 17) + (seen << 16) + NationalPokedexNumToSpecies(ndex_num);
-                    ret++;
-                }
-            }
-        }
-        break;
     case DEX_ORDER_TYPE:
         for (i = 0; i < NUM_SPECIES - 1; i++)
         {
             ndex_num = SpeciesToNationalPokedexNum(gPokedexOrder_Type[i]);
-            if (ndex_num <= max_n)
-            {
-                seen = DexScreen_GetSetPokedexFlag(ndex_num, FLAG_GET_SEEN, FALSE);
-                caught = DexScreen_GetSetPokedexFlag(ndex_num, FLAG_GET_CAUGHT, FALSE);
-                if (caught)
-                {
-                    sPokedexScreenData->listItems[ret].label = gSpeciesNames[NationalPokedexNumToSpecies(ndex_num)];
-                    sPokedexScreenData->listItems[ret].index = (caught << 17) + (seen << 16) + NationalPokedexNumToSpecies(ndex_num);
-                    ret++;
-                }
-            }
-        }
-        break;
-    case DEX_ORDER_LIGHTEST:
-        for (i = 0; i < NATIONAL_DEX_COUNT; i++)
-        {
-            ndex_num = gPokedexOrder_Weight[i];
-            if (ndex_num <= max_n)
-            {
-                seen = DexScreen_GetSetPokedexFlag(ndex_num, FLAG_GET_SEEN, FALSE);
-                caught = DexScreen_GetSetPokedexFlag(ndex_num, FLAG_GET_CAUGHT, FALSE);
-                if (caught)
-                {
-                    sPokedexScreenData->listItems[ret].label = gSpeciesNames[NationalPokedexNumToSpecies(ndex_num)];
-                    sPokedexScreenData->listItems[ret].index = (caught << 17) + (seen << 16) + NationalPokedexNumToSpecies(ndex_num);
-                    ret++;
-                }
-            }
-        }
-        break;
-    case DEX_ORDER_SMALLEST:
-        for (i = 0; i < NATIONAL_DEX_COUNT; i++)
-        {
-            ndex_num = gPokedexOrder_Height[i];
             if (ndex_num <= max_n)
             {
                 seen = DexScreen_GetSetPokedexFlag(ndex_num, FLAG_GET_SEEN, FALSE);
@@ -1492,10 +1420,7 @@ static void DexScreen_InitListMenuForOrderedList(const struct ListMenuTemplate *
     case DEX_ORDER_NUMERICAL_KANTO:
         sPokedexScreenData->orderedListMenuTaskId = ListMenuInitInRect(template, sListMenuRects_OrderedList, sPokedexScreenData->kantoOrderMenuCursorPos, sPokedexScreenData->kantoOrderMenuItemsAbove);
         break;
-    case DEX_ORDER_ATOZ:
     case DEX_ORDER_TYPE:
-    case DEX_ORDER_LIGHTEST:
-    case DEX_ORDER_SMALLEST:
         sPokedexScreenData->orderedListMenuTaskId = ListMenuInitInRect(template, sListMenuRects_OrderedList, sPokedexScreenData->characteristicOrderMenuCursorPos, sPokedexScreenData->characteristicOrderMenuItemsAbove);
         break;
     case DEX_ORDER_NUMERICAL_NATIONAL:
@@ -1512,10 +1437,7 @@ static void DexScreen_DestroyDexOrderListMenu(u8 order)
     case DEX_ORDER_NUMERICAL_KANTO:
         DestroyListMenuTask(sPokedexScreenData->orderedListMenuTaskId, &sPokedexScreenData->kantoOrderMenuCursorPos, &sPokedexScreenData->kantoOrderMenuItemsAbove);
         break;
-    case DEX_ORDER_ATOZ:
     case DEX_ORDER_TYPE:
-    case DEX_ORDER_LIGHTEST:
-    case DEX_ORDER_SMALLEST:
         DestroyListMenuTask(sPokedexScreenData->orderedListMenuTaskId, &sPokedexScreenData->characteristicOrderMenuCursorPos, &sPokedexScreenData->characteristicOrderMenuItemsAbove);
         break;
     case DEX_ORDER_NUMERICAL_NATIONAL:
@@ -2039,10 +1961,7 @@ static bool32 DexScreen_TryScrollMonsVertical(u8 direction)
         cursorPos_p = &sPokedexScreenData->kantoOrderMenuCursorPos;
         itemsAbove_p = &sPokedexScreenData->kantoOrderMenuItemsAbove;
         break;
-    case DEX_ORDER_ATOZ:
     case DEX_ORDER_TYPE:
-    case DEX_ORDER_LIGHTEST:
-    case DEX_ORDER_SMALLEST:
         cursorPos_p = &sPokedexScreenData->characteristicOrderMenuCursorPos;
         itemsAbove_p = &sPokedexScreenData->characteristicOrderMenuItemsAbove;
         break;
@@ -2194,10 +2113,6 @@ static u32 DexScreen_GetDefaultPersonality(int species)
 {
     switch (species)
     {
-    case SPECIES_SPINDA:
-        return gSaveBlock2Ptr->pokedex.spindaPersonality;
-    case SPECIES_UNOWN:
-        return gSaveBlock2Ptr->pokedex.unownPersonality;
     default:
         return 0;
     }

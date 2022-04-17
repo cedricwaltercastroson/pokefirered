@@ -255,35 +255,14 @@ void SetQuestLogEvent(u16 eventId, const u16 *eventData)
 
 static bool8 InQuestLogDisabledLocation(void)
 {
-    // In Trainer Tower
-    if (gSaveBlock1Ptr->location.mapGroup == MAP_GROUP(TRAINER_TOWER_1F)
-        && (gSaveBlock1Ptr->location.mapNum == MAP_NUM(TRAINER_TOWER_1F)
-            || gSaveBlock1Ptr->location.mapNum == MAP_NUM(TRAINER_TOWER_2F)
-            || gSaveBlock1Ptr->location.mapNum == MAP_NUM(TRAINER_TOWER_3F)
-            || gSaveBlock1Ptr->location.mapNum == MAP_NUM(TRAINER_TOWER_4F)
-            || gSaveBlock1Ptr->location.mapNum == MAP_NUM(TRAINER_TOWER_5F)
-            || gSaveBlock1Ptr->location.mapNum == MAP_NUM(TRAINER_TOWER_6F)
-            || gSaveBlock1Ptr->location.mapNum == MAP_NUM(TRAINER_TOWER_7F)
-            || gSaveBlock1Ptr->location.mapNum == MAP_NUM(TRAINER_TOWER_8F)
-            || gSaveBlock1Ptr->location.mapNum == MAP_NUM(TRAINER_TOWER_ROOF)
-            || gSaveBlock1Ptr->location.mapNum == MAP_NUM(TRAINER_TOWER_LOBBY)
-            || gSaveBlock1Ptr->location.mapNum == MAP_NUM(TRAINER_TOWER_ELEVATOR)))
-        return TRUE;
 
     // In pokemon trainer fan club
     if (gSaveBlock1Ptr->location.mapGroup == MAP_GROUP(SAFFRON_CITY_POKEMON_TRAINER_FAN_CLUB) && gSaveBlock1Ptr->location.mapNum == MAP_NUM(SAFFRON_CITY_POKEMON_TRAINER_FAN_CLUB))
         return TRUE;
 
-    // In E-Reader house
-    if (gSaveBlock1Ptr->location.mapGroup == MAP_GROUP(SEVEN_ISLAND_HOUSE_ROOM1) &&
-        (gSaveBlock1Ptr->location.mapNum == MAP_NUM(SEVEN_ISLAND_HOUSE_ROOM1)
-         || gSaveBlock1Ptr->location.mapNum == MAP_NUM(SEVEN_ISLAND_HOUSE_ROOM2)))
-        return TRUE;
-
     // In elevator
     if ((gSaveBlock1Ptr->location.mapGroup == MAP_GROUP(ROCKET_HIDEOUT_ELEVATOR) && gSaveBlock1Ptr->location.mapNum == MAP_NUM(ROCKET_HIDEOUT_ELEVATOR))
         || (gSaveBlock1Ptr->location.mapGroup == MAP_GROUP(SILPH_CO_ELEVATOR) && gSaveBlock1Ptr->location.mapNum == MAP_NUM(SILPH_CO_ELEVATOR))
-        || (gSaveBlock1Ptr->location.mapGroup == MAP_GROUP(TRAINER_TOWER_ELEVATOR) && gSaveBlock1Ptr->location.mapNum == MAP_NUM(TRAINER_TOWER_ELEVATOR))
         || (gSaveBlock1Ptr->location.mapGroup == MAP_GROUP(CELADON_CITY_DEPARTMENT_STORE_ELEVATOR) && gSaveBlock1Ptr->location.mapNum == MAP_NUM(CELADON_CITY_DEPARTMENT_STORE_ELEVATOR)))
         return TRUE;
 
@@ -1594,9 +1573,6 @@ static bool8 IsSpeciesFromSpecialEncounter(u16 species)
     case SPECIES_ZAPDOS:
     case SPECIES_MOLTRES:
     case SPECIES_MEWTWO:
-    case SPECIES_LUGIA:
-    case SPECIES_HO_OH:
-    case SPECIES_DEOXYS:
         return TRUE;
     }
     return FALSE;
@@ -2066,14 +2042,7 @@ static const u16 sQuestLogWorldMapFlags[] =
         FLAG_WORLD_MAP_FUCHSIA_CITY,
         FLAG_WORLD_MAP_CINNABAR_ISLAND,
         FLAG_WORLD_MAP_INDIGO_PLATEAU_EXTERIOR,
-        FLAG_WORLD_MAP_SAFFRON_CITY,
-        FLAG_WORLD_MAP_ONE_ISLAND,
-        FLAG_WORLD_MAP_TWO_ISLAND,
-        FLAG_WORLD_MAP_THREE_ISLAND,
-        FLAG_WORLD_MAP_FOUR_ISLAND,
-        FLAG_WORLD_MAP_FIVE_ISLAND,
-        FLAG_WORLD_MAP_SEVEN_ISLAND,
-        FLAG_WORLD_MAP_SIX_ISLAND
+        FLAG_WORLD_MAP_SAFFRON_CITY
     };
 
 void QuestLog_RecordEnteredMap(u16 worldMapFlag)

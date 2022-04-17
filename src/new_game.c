@@ -148,7 +148,6 @@ void NewGameInitData(void)
     WarpToPlayersRoom();
     ScriptContext2_RunNewScript(EventScript_ResetAllMapFlags);
     StringCopy(gSaveBlock1Ptr->rivalName, rivalName);
-    ResetTrainerTowerResults();
 }
 
 static void ResetMiniGamesResults(void)

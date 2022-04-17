@@ -58,3 +58,49 @@ FuchsiaCity_House3_EventScript_CancelForgetMove:: @ 816D941
 	msgbox FuchsiaCity_House3_Text_ComeAgainToForgetOtherMoves
 	release
 	end
+
+FuchsiaCity_House3_EventScript_AskTutorMon:: @ 81716A5
+	lock
+	faceplayer
+	msgbox FuchsiaCity_House3_Text_WantMeToTeachMove, MSGBOX_YESNO
+	compare VAR_RESULT, NO
+	goto_if_eq FuchsiaCity_House3_EventScript_EndTutorMove
+	goto FuchsiaCity_House3_EventScript_ChooseMonToTutor
+	end
+
+FuchsiaCity_House3_EventScript_ChooseMonToTutor:: @ 81716BE
+	msgbox FuchsiaCity_House3_Text_TutorWhichMon
+	special SelectMoveTutorMon
+	waitstate
+	compare VAR_0x8004, PARTY_SIZE
+	goto_if_ge FuchsiaCity_House3_EventScript_EndTutorMove
+	special IsSelectedMonEgg
+	compare VAR_RESULT, TRUE
+	goto_if_eq FuchsiaCity_House3_EventScript_CantTutorEgg
+	compare VAR_0x8005, 0
+	goto_if_eq FuchsiaCity_House3_EventScript_NoMoveToTutorMon
+	goto FuchsiaCity_House3_EventScript_ChooseMoveToTeach
+	end
+
+FuchsiaCity_House3_EventScript_ChooseMoveToTeach:: @ 81716F4
+	msgbox FuchsiaCity_House3_Text_TeachWhichMove
+	special DisplayMoveTutorMenu
+	waitstate
+	compare VAR_0x8004, 0
+	goto_if_eq FuchsiaCity_House3_EventScript_ChooseMonToTutor
+	end
+
+FuchsiaCity_House3_EventScript_NoMoveToTutorMon:: @ 8171782
+	msgbox FuchsiaCity_House3_Text_NoMoveICanTeachThatMon
+	goto FuchsiaCity_House3_EventScript_ChooseMonToTutor
+	end
+
+FuchsiaCity_House3_EventScript_CantTutorEgg:: @ 8171790
+	msgbox FuchsiaCity_House3_Text_CantTeachAnEgg
+	goto FuchsiaCity_House3_EventScript_ChooseMonToTutor
+	end
+
+FuchsiaCity_House3_EventScript_EndTutorMove:: @ 817179E
+	msgbox FuchsiaCity_House3_Text_EndToLearnMove
+	release
+	end

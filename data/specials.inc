@@ -9,6 +9,7 @@
 	.align 2
 gSpecials:: @ 815FD60
 	def_special HealPlayerParty
+	def_special RefillMovesPlayerParty
 	def_special SetCableClubWarp
 	def_special DoCableClubWarp
 	def_special ReturnFromLinkRoom
@@ -412,7 +413,6 @@ gSpecials:: @ 815FD60
 	def_special DoSSAnneDepartureCutscene
 	def_special IsPokemonJumpSpeciesInParty
 	def_special IsNationalPokedexEnabled
-	def_special CallTrainerTowerFunc
 	def_special ShowPokemonJumpRecords
 	def_special BufferTMHMMoveName
 	def_special DaisyMassageServices

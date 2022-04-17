@@ -65,14 +65,8 @@ CeruleanCity_EventScript_Rival:: @ 81664CC
 	call_if_eq CeruleanCity_EventScript_RivalStartExit
 	compare VAR_TEMP_1, 2
 	call_if_eq CeruleanCity_EventScript_RivalStartExitRight
-	msgbox CeruleanCity_Text_OhRightLittlePresentAsFavor
 	setvar VAR_MAP_SCENE_CERULEAN_CITY_RIVAL, 1
-	setflag FLAG_GOT_FAME_CHECKER
-	giveitem ITEM_FAME_CHECKER
-	msgbox CeruleanCity_Text_ExplainFameCheckerSmellYa
-	closemessage
 	applymovement LOCALID_RIVAL, CeruleanCity_Movement_RivalExit
-	waitmovement 0
 	fadedefaultbgm
 	removeobject LOCALID_RIVAL
 	releaseall
@@ -135,14 +129,6 @@ CeruleanCity_Movement_RivalStartExit:: @ 81665D9
 	walk_down
 	walk_down
 	walk_down
-	delay_16
-	delay_16
-	walk_left
-	walk_up
-	walk_up
-	walk_up
-	walk_up
-	walk_up
 	step_end
 
 CeruleanCity_Movement_RivalStartExitRight:: @ 81665EA
@@ -154,14 +140,6 @@ CeruleanCity_Movement_RivalStartExitRight:: @ 81665EA
 	walk_down
 	walk_down
 	walk_down
-	delay_16
-	delay_16
-	walk_right
-	walk_up
-	walk_up
-	walk_up
-	walk_up
-	walk_up
 	step_end
 
 CeruleanCity_Movement_RivalExit:: @ 81665FB

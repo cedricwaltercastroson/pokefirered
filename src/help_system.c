@@ -125,7 +125,6 @@ enum
     HELP_WHATS_POKEMON_MART,
     HELP_WANT_TO_END_GAME,
     HELP_WHATS_A_MON,
-    HELP_WHAT_IS_THAT_PERSON_LIKE,
     HELP_WHAT_DOES_HIDDEN_MOVE_DO,
     HELP_WHAT_DO_I_DO_IN_SAFARI,
     HELP_WHAT_ARE_SAFARI_RULES,
@@ -173,7 +172,6 @@ static const u8 *const sHelpSystemSpecializedQuestionTextPtrs[] = {
     [HELP_WHATS_POKEMON_MART]                = Help_Text_WhatsPokemonMart,
     [HELP_WANT_TO_END_GAME]                  = Help_Text_WantToEndGame,
     [HELP_WHATS_A_MON]                       = Help_Text_WhatsAMon,
-    [HELP_WHAT_IS_THAT_PERSON_LIKE]          = Help_Text_WhatIsThatPersonLike,
     [HELP_WHAT_DOES_HIDDEN_MOVE_DO]          = Help_Text_WhatDoesHiddenMoveDo,
     [HELP_WHAT_DO_I_DO_IN_SAFARI]            = Help_Text_WhatDoIDoInSafari,
     [HELP_WHAT_ARE_SAFARI_RULES]             = Help_Text_WhatAreSafariRules,
@@ -221,7 +219,6 @@ static const u8 *const sHelpSystemSpecializedAnswerTextPtrs[] = {
     [HELP_WHATS_POKEMON_MART]                = Help_Text_AnswerWhatsPokemonMart,
     [HELP_WANT_TO_END_GAME]                  = Help_Text_AnswerWantToEndGame,
     [HELP_WHATS_A_MON]                       = Help_Text_AnswerWhatsAMon,
-    [HELP_WHAT_IS_THAT_PERSON_LIKE]          = Help_Text_AnswerWhatIsThatPersonLike,
     [HELP_WHAT_DOES_HIDDEN_MOVE_DO]          = Help_Text_AnswerWhatDoesHiddenMoveDo,
     [HELP_WHAT_DO_I_DO_IN_SAFARI]            = Help_Text_AnswerWhatDoIDoInSafari,
     [HELP_WHAT_ARE_SAFARI_RULES]             = Help_Text_AnswerWhatAreSafariRules,
@@ -1034,8 +1031,7 @@ static const u8 sWhatToDo_Indoors[] = {
     HELP_TALKED_TO_EVERYONE_NOW_WHAT, 
     HELP_SOMEONE_BLOCKING_MY_WAY, 
     HELP_I_CANT_GO_ON, 
-    HELP_HOW_DO_I_PROGRESS, 
-    HELP_WHAT_IS_THAT_PERSON_LIKE, 
+    HELP_HOW_DO_I_PROGRESS,  
     HELP_OUT_OF_THINGS_TO_DO, 
     HELP_HOW_ARE_ROADS_FORESTS_DIFFERENT, 
     HELP_WHAT_DO_I_DO_IN_CAVE, 
@@ -1108,8 +1104,7 @@ static const u8 sWhatToDo_Overworld[] = {
     HELP_TALKED_TO_EVERYONE_NOW_WHAT, 
     HELP_SOMEONE_BLOCKING_MY_WAY, 
     HELP_I_CANT_GO_ON, 
-    HELP_HOW_DO_I_PROGRESS, 
-    HELP_WHAT_IS_THAT_PERSON_LIKE, 
+    HELP_HOW_DO_I_PROGRESS,  
     HELP_OUT_OF_THINGS_TO_DO, 
     HELP_HOW_ARE_ROADS_FORESTS_DIFFERENT, 
     HELP_WHAT_DO_I_DO_IN_CAVE, 
@@ -1168,8 +1163,7 @@ static const u8 sTerms_Overworld[] = {
 static const u8 sWhatToDo_Dungeon[] = {
     HELP_WHAT_ARE_MY_ADVENTURE_BASICS, 
     HELP_I_CANT_GO_ON, 
-    HELP_HOW_DO_I_PROGRESS, 
-    HELP_WHAT_IS_THAT_PERSON_LIKE, 
+    HELP_HOW_DO_I_PROGRESS,  
     HELP_OUT_OF_THINGS_TO_DO, 
     HELP_HOW_ARE_ROADS_FORESTS_DIFFERENT, 
     HELP_WHAT_DO_I_DO_IN_CAVE, 
@@ -1224,8 +1218,7 @@ static const u8 sTerms_Dungeon[] = {
 };
 
 static const u8 sWhatToDo_Surfing[] = {
-    HELP_I_CANT_GO_ON, 
-    HELP_WHAT_IS_THAT_PERSON_LIKE, 
+    HELP_I_CANT_GO_ON,  
     HELP_OUT_OF_THINGS_TO_DO, 
     HELP_WHAT_IS_A_GYM, 
     HELP_CANT_CATCH_MONS, 
@@ -1723,10 +1716,6 @@ static const u16 sMartMaps[] = {
     MAP_FUCHSIA_CITY_MART,
     MAP_CINNABAR_ISLAND_MART,
     MAP_SAFFRON_CITY_MART,
-    MAP_THREE_ISLAND_MART,
-    MAP_FOUR_ISLAND_MART,
-    MAP_SEVEN_ISLAND_MART,
-    MAP_SIX_ISLAND_MART,
     MAP_UNDEFINED
 };
 
@@ -1749,16 +1738,7 @@ static const u8 sDungeonMaps[][3] = {
     { MAP_GROUP(DIGLETTS_CAVE_NORTH_ENTRANCE), MAP_NUM(DIGLETTS_CAVE_NORTH_ENTRANCE), 3 },
     { MAP_GROUP(SEAFOAM_ISLANDS_1F), MAP_NUM(SEAFOAM_ISLANDS_1F), 5 },
     { MAP_GROUP(VICTORY_ROAD_1F), MAP_NUM(VICTORY_ROAD_1F), 3 },
-    { MAP_GROUP(CERULEAN_CAVE_1F), MAP_NUM(CERULEAN_CAVE_1F), 3 },
-    { MAP_GROUP(MT_EMBER_RUBY_PATH_B4F), MAP_NUM(MT_EMBER_RUBY_PATH_B4F), 1 },
-    { MAP_GROUP(MT_EMBER_SUMMIT_PATH_1F), MAP_NUM(MT_EMBER_SUMMIT_PATH_1F), 3 },
-    { MAP_GROUP(MT_EMBER_RUBY_PATH_B5F), MAP_NUM(MT_EMBER_RUBY_PATH_B5F), 7 },
-    { MAP_GROUP(THREE_ISLAND_BERRY_FOREST), MAP_NUM(THREE_ISLAND_BERRY_FOREST), 1 },
-    { MAP_GROUP(SIX_ISLAND_PATTERN_BUSH), MAP_NUM(SIX_ISLAND_PATTERN_BUSH), 1 },
-    { MAP_GROUP(FIVE_ISLAND_LOST_CAVE_ENTRANCE), MAP_NUM(FIVE_ISLAND_LOST_CAVE_ENTRANCE), 15 },
-    { MAP_GROUP(FOUR_ISLAND_ICEFALL_CAVE_ENTRANCE), MAP_NUM(FOUR_ISLAND_ICEFALL_CAVE_ENTRANCE), 4 },
-    { MAP_GROUP(SIX_ISLAND_ALTERING_CAVE), MAP_NUM(SIX_ISLAND_ALTERING_CAVE), 1 },
-    { MAP_GROUP(SEVEN_ISLAND_TANOBY_RUINS_MONEAN_CHAMBER), MAP_NUM(SEVEN_ISLAND_TANOBY_RUINS_MONEAN_CHAMBER), 7 }
+    { MAP_GROUP(CERULEAN_CAVE_1F), MAP_NUM(CERULEAN_CAVE_1F), 3 }
 };
 
 void SetHelpContextDontCheckBattle(u8 contextId)
@@ -2086,8 +2066,6 @@ static bool8 IsHelpSystemSubmenuEnabled(u8 id)
         case HELP_WHAT_ARE_HIDDEN_MOVES:
         case HELP_WHAT_DOES_HIDDEN_MOVE_DO:
             return HasGottenAtLeastOneHM();
-        case HELP_WHAT_IS_THAT_PERSON_LIKE:
-            return FlagGet(FLAG_GOT_FAME_CHECKER);
         case HELP_WHAT_IS_A_GYM:
             return FlagGet(FLAG_WORLD_MAP_PEWTER_CITY);
         }

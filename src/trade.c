@@ -1443,15 +1443,7 @@ static bool8 shedinja_maker_maybe(void)
 
             if (species != SPECIES_NONE)
             {
-                if (species == SPECIES_SHEDINJA && GetMonData(mon, MON_DATA_LANGUAGE) != LANGUAGE_JAPANESE)
-                {
-                    GetMonData(mon, MON_DATA_NICKNAME, name);
-
-                    if (!StringCompareWithoutExtCtrlCodes(name, gJPText_Shedinja))
-                    {
-                        SetMonData(mon, MON_DATA_NICKNAME, gSpeciesNames[SPECIES_SHEDINJA]);
-                    }
-                }
+                
             }
         }
         return TRUE;
@@ -1835,7 +1827,7 @@ static u8 PlayerHasEnoughPokemonToTrade_HandleMewDeoxys(u8 *flags, u8 partyCount
             count += flags[i];
     }
     species = GetMonData(&gEnemyParty[sTradeMenuResourcesPtr->otherPlayerCursorPosition % 6], MON_DATA_SPECIES);
-    if ((species == SPECIES_DEOXYS || species == SPECIES_MEW) && !GetMonData(&gEnemyParty[sTradeMenuResourcesPtr->otherPlayerCursorPosition % 6], MON_DATA_EVENT_LEGAL))
+    if ((species == SPECIES_MEW) && !GetMonData(&gEnemyParty[sTradeMenuResourcesPtr->otherPlayerCursorPosition % 6], MON_DATA_EVENT_LEGAL))
         return 2;
     if (count != 0)
         count = 1;
@@ -2637,7 +2629,7 @@ static u32 TestWhetherSelectedMonCanBeTraded(struct Pokemon * party, int partyCo
         }
     }
 
-    if (species[cursorPos] == SPECIES_DEOXYS || species[cursorPos] == SPECIES_MEW)
+    if (species[cursorPos] == SPECIES_MEW)
     {
         if (!GetMonData(&party[cursorPos], MON_DATA_EVENT_LEGAL))
         {
@@ -2722,7 +2714,7 @@ s32 Trade_CalcLinkPlayerCompatibilityParam(void)
 
 static bool32 IsDeoxysOrMewUntradable(u16 species, bool8 isEventLegal)
 {
-    if (species == SPECIES_DEOXYS || species == SPECIES_MEW)
+    if (species == SPECIES_MEW)
     {
         if (!isEventLegal)
             return TRUE;
