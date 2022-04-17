@@ -6,6 +6,7 @@
 #include "hall_of_fame.h"
 #include "load_save.h"
 #include "constants/heal_locations.h"
+#include "roamer.h"
 
 bool8 EnterHallOfFame(void)
 {
@@ -26,6 +27,7 @@ bool8 EnterHallOfFame(void)
     if (GetGameStat(GAME_STAT_FIRST_HOF_PLAY_TIME) == 0)
     {
         SetGameStat(GAME_STAT_FIRST_HOF_PLAY_TIME, (gSaveBlock2Ptr->playTimeHours << 16) | (gSaveBlock2Ptr->playTimeMinutes << 8) | gSaveBlock2Ptr->playTimeSeconds);
+        InitRoamer();
     }
     SetContinueGameWarpStatus();
     SetContinueGameWarpToHealLocation(SPAWN_PALLET_TOWN);

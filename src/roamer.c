@@ -62,6 +62,12 @@ static const u8 sRoamerLocations[][7] = {
     {___, ___, ___, ___, ___, ___, ___}
 };
 
+static const u8 testsRoamerLocations[][7] = {
+    {MAP_NUM(ROUTE1), MAP_NUM(ROUTE21_NORTH), MAP_NUM(ROUTE22), ___, ___, ___, ___},
+    {MAP_NUM(ROUTE21_NORTH), MAP_NUM(ROUTE1), MAP_NUM(ROUTE22), ___, ___, ___, ___},
+    {MAP_NUM(ROUTE22), MAP_NUM(ROUTE1), MAP_NUM(ROUTE21_NORTH), ___, ___, ___, ___}
+};
+
 #undef ___
 #define NUM_LOCATION_SETS (ARRAY_COUNT(sRoamerLocations) - 1)
 #define NUM_LOCATIONS_PER_SET (ARRAY_COUNT(sRoamerLocations[0]))
