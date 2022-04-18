@@ -11,7 +11,7 @@ jobs:
     env:
       GAME_VERSION: FIRERED
       GAME_LANGUAGE: ENGLISH
-      GAME_REVISION: 0
+      GAME_REVISION: 1
       MODERN: 0
       COMPARE: 0
     steps:
@@ -36,7 +36,7 @@ jobs:
           ./install.sh ../
         working-directory: ./agbcc
 
-      - name: Compare FireRed rev1
+      - name: Build FireRed rev1
         env:
           GAME_REVISION: 1
         run: |
