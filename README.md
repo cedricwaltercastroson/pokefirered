@@ -1,4 +1,4 @@
-# Pokémon FireRed and LeafGreen
+# Pokémon FireRed
 
 [![Build Status][travis-badge]][travis]
 
