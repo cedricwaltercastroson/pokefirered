@@ -22,7 +22,8 @@ Disabled Trading and Battling on 2F of Pokemon Centres.
 
 Added the ability to refill PP moves when finishing battles.
 
-Todo list: 
+Todo list:
+
 Looking into making 151 all catchable in a single rom.
 
 Looking into party lead following pokemon..
