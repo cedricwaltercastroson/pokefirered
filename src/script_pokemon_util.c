@@ -51,7 +51,6 @@ void RefillMovesPlayerParty(void)
     u8 ppBonuses;
     u8 arg[4];
 
-    // restore HP.
     for(i = 0; i < gPlayerPartyCount; i++)
     {
         ppBonuses = GetMonData(&gPlayerParty[i], MON_DATA_PP_BONUSES);
@@ -65,10 +64,6 @@ void RefillMovesPlayerParty(void)
 
         // since status is u32, the four 0 assignments here are probably for safety to prevent undefined data from reaching SetMonData.
         arg[0] = 0;
-        arg[1] = 0;
-        arg[2] = 0;
-        arg[3] = 0;
-        SetMonData(&gPlayerParty[i], MON_DATA_STATUS, arg);
     }
 }
 
