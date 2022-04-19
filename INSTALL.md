@@ -1,28 +1,38 @@
 ## Prerequisites
 
-| Linux | macOS | Windows 10 (build 18917+) | Windows 10 (1709+) | Windows 8, 8.1, and 10 (1507, 1511, 1607, 1703)
-| ----- | ----- | ------------------------- | ------------------ | ---------------------------------------------------------
-| none | [Xcode Command Line Tools package][xcode] | [Windows Subsystem for Linux 2][wsl2] | [Windows Subsystem for Linux][wsl] | [Cygwin][cygwin]
+## Windows (msys2)
 
-[xcode]: https://developer.apple.com/library/archive/technotes/tn2339/_index.html#//apple_ref/doc/uid/DTS40014588-CH1-DOWNLOADING_COMMAND_LINE_TOOLS_IS_NOT_AVAILABLE_IN_XCODE_FOR_MACOS_10_9__HOW_CAN_I_INSTALL_THEM_ON_MY_MACHINE_
-[wsl2]: https://docs.microsoft.com/windows/wsl/wsl2-install
-[wsl]: https://docs.microsoft.com/windows/wsl/install-win10
-[cygwin]: https://cygwin.com/install.html
+### Setting up msys2
 
-The [prerelease version of the Linux subsystem](https://docs.microsoft.com/windows/wsl/install-legacy) available in the 1607 and 1703 releases of Windows 10 is obsolete so consider uninstalling it.
+Note that in msys2, Copy is Ctrl+Insert and Paste is Shift+Insert.
 
-Make sure that the `build-essential`, `git`, and `libpng-dev` packages are installed. The `build-essential` package includes the `make`, `gcc-core`, and `g++` packages so they do not have to be obtained separately.
+1. Open msys2 at C:\msys2\mingw64.exe or run `C:\msys2\msys2_shell.bat -mingw64`.
 
-In the case of Cygwin, [include](https://cygwin.com/cygwin-ug-net/setup-net.html#setup-packages) the `make`, `git`, `gcc-core`, `gcc-g++`, and `libpng-devel` packages.
+2. Certain packages are required to build pokefirered. Install these by running the following command:
 
-Install the **devkitARM** toolchain of [devkitPro](https://devkitpro.org/wiki/Getting_Started) and add its environment variables. For Windows versions without the Linux subsystem, the devkitPro [graphical installer](https://github.com/devkitPro/installer/releases) includes a preconfigured MSYS2 environment, thus the steps below are not required.
+    ```bash
+    pacman -Syuu
+    pacman -Suu
+    pacman -Sy
+    pacman -S base-devel development
+    pacman -S make zlib-devel git mingw-w64-x86_64-gcc mingw-w64-x86_64-libpng mingw-w64-x86_64-arm-none-eabi-toolchain
+    ```
+    <details>
+        <summary><i>Note...</i></summary>
 
-    sudo (dkp-)pacman -S gba-dev
-    export DEVKITPRO=/opt/devkitpro
-    echo "export DEVKITPRO=$DEVKITPRO" >> ~/.bashrc
-    export DEVKITARM=$DEVKITPRO/devkitARM
-    echo "export DEVKITARM=$DEVKITARM" >> ~/.bashrc
+    >   This command will ask for confirmation, just enter the yes action when prompted.
+    </details>
 
+### Choosing where to store pokeemerald (msys2)
+At this point, you can choose a folder to store pokeemerald into. If you're okay with storing pokeemerald in the user profile folder, then proceed to [Installation](#installation). Otherwise, you'll need to account for where pokeemerald is stored when changing directory to the pokeemerald folder.
+
+For example, if you want to store pokeemerald (and agbcc) in **C:\Users\\_\<user>_\Desktop\decomps** (where *\<user>* is your **Windows** username), enter this command:
+
+```bash
+cd Desktop/decomps
+```
+
+If this works, then proceed to [Installation](#installation).
 
 ## Installation
 
@@ -51,16 +61,10 @@ If only `.c` or `.s` files were changed, turn off the dependency scanning tempor
 
 Convenient targets have been defined to build Pokémon LeafGreen and the 1.1 revisions of both games:
 
-    # LeafGreen 1.0
-    make -j$(nproc) leafgreen
     # FireRed 1.1
     make -j$(nproc) firered_rev1
     # LeafGreen 1.1
     make -j$(nproc) leafgreen_rev1
-
-To confirm these match the respective official ROM images, prefix `compare_` to each target name. For example:
-
-    make -j$(nproc) compare_leafgreen
 
 **Note:** If the build command is not recognized on Linux, including the Linux environment used within Windows, run `nproc` and replace `$(nproc)` with the returned value (e.g.: `make -j4`). Because `nproc` is not available on macOS, the alternative is `sysctl -n hw.ncpu`.
 
