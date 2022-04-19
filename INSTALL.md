@@ -1,4 +1,8 @@
 ## Prerequisites
+Install devkitPro:
+https://github.com/devkitPro/installer/releases/latest
+
+Make sure GBA development is ticked.
 
 ## Windows (msys2)
 
