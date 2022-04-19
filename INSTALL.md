@@ -23,7 +23,7 @@ Note that in msys2, Copy is Ctrl+Insert and Paste is Shift+Insert.
     >   This command will ask for confirmation, just enter the yes action when prompted.
     </details>
 
-### Choosing where to store pokeemerald (msys2)
+### Choosing where to store pokefirered (msys2)
 At this point, you can choose a folder to store pokeemerald into. If you're okay with storing pokeemerald in the user profile folder, then proceed to [Installation](#installation). Otherwise, you'll need to account for where pokeemerald is stored when changing directory to the pokeemerald folder.
 
 For example, if you want to store pokeemerald (and agbcc) in **C:\Users\\_\<user>_\Desktop\decomps** (where *\<user>* is your **Windows** username), enter this command:
