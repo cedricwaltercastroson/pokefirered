@@ -49,7 +49,7 @@ void RefillMovesPlayerParty(void)
 {
     u8 i, j;
     u8 ppBonuses;
-    u8 arg[4];
+    u8 arg[1];
 
     for(i = 0; i < gPlayerPartyCount; i++)
     {
