@@ -88,6 +88,7 @@ FuchsiaCity_House3_EventScript_ChooseMoveToTeach:: @ 81716F4
 	waitstate
 	compare VAR_0x8004, 0
 	goto_if_eq FuchsiaCity_House3_EventScript_ChooseMonToTutor
+	goto FuchsiaCity_House3_EventScript_EndTutorMove
 	end
 
 FuchsiaCity_House3_EventScript_NoMoveToTutorMon:: @ 8171782
