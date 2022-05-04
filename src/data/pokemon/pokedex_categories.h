@@ -355,6 +355,7 @@ static const u16 sDexCategory_CavePkmn_Page2[] = {
 };
 
 static const u16 sDexCategory_CavePkmn_Page3[] = {
+    SPECIES_MAGMAR,
 };
 
 static const u16 sDexCategory_CavePkmn_Page4[] = {
