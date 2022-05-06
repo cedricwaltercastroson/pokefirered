@@ -13,11 +13,11 @@
   "show_map_name": true,
   "floor_number": 0,
   "battle_scene": "MAP_BATTLE_SCENE_NORMAL",
-  "connections": null,
+  "connections": 0,
   "object_events": [
     {
-      "type": "object",
       "graphics_id": "OBJ_EVENT_GFX_ITEM_BALL",
+      "in_connection": false,
       "x": 33,
       "y": 5,
       "elevation": 3,
@@ -27,11 +27,12 @@
       "trainer_type": "TRAINER_TYPE_NONE",
       "trainer_sight_or_berry_tree_id": "0",
       "script": "SafariZone_North_EventScript_ItemProtein",
-      "flag": "FLAG_HIDE_SAFARI_ZONE_NORTH_PROTEIN"
+      "flag": "FLAG_HIDE_SAFARI_ZONE_NORTH_PROTEIN",
+      "type": "object"
     },
     {
-      "type": "object",
       "graphics_id": "OBJ_EVENT_GFX_ITEM_BALL",
+      "in_connection": false,
       "x": 28,
       "y": 9,
       "elevation": 3,
@@ -41,11 +42,12 @@
       "trainer_type": "TRAINER_TYPE_NONE",
       "trainer_sight_or_berry_tree_id": "0",
       "script": "SafariZone_North_EventScript_ItemTM47",
-      "flag": "FLAG_HIDE_SAFARI_ZONE_NORTH_TM47"
+      "flag": "FLAG_HIDE_SAFARI_ZONE_NORTH_TM47",
+      "type": "object"
     },
     {
-      "type": "object",
       "graphics_id": "OBJ_EVENT_GFX_ITEM_BALL",
+      "in_connection": false,
       "x": 29,
       "y": 17,
       "elevation": 3,
@@ -55,7 +57,8 @@
       "trainer_type": "TRAINER_TYPE_NONE",
       "trainer_sight_or_berry_tree_id": "0",
       "script": "SafariZone_North_EventScript_ItemQuickClaw",
-      "flag": "FLAG_HIDE_SAFARI_ZONE_NORTH_QUICK_CLAW"
+      "flag": "FLAG_HIDE_SAFARI_ZONE_NORTH_QUICK_CLAW",
+      "type": "object"
     }
   ],
   "warp_events": [
@@ -151,7 +154,9 @@
       "dest_warp_id": 1
     }
   ],
-  "coord_events": [],
+  "coord_events": [
+
+  ],
   "bg_events": [
     {
       "type": "sign",

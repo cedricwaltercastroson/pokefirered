@@ -15,20 +15,20 @@
   "battle_scene": "MAP_BATTLE_SCENE_NORMAL",
   "connections": [
     {
-      "map": "MAP_INDIGO_PLATEAU_EXTERIOR",
+      "direction": "up",
       "offset": 0,
-      "direction": "up"
+      "map": "MAP_INDIGO_PLATEAU_EXTERIOR"
     },
     {
-      "map": "MAP_ROUTE22",
+      "direction": "down",
       "offset": 0,
-      "direction": "down"
+      "map": "MAP_ROUTE22"
     }
   ],
   "object_events": [
     {
-      "type": "object",
       "graphics_id": "OBJ_EVENT_GFX_POLICEMAN",
+      "in_connection": false,
       "x": 15,
       "y": 149,
       "elevation": 3,
@@ -38,11 +38,12 @@
       "trainer_type": "TRAINER_TYPE_NONE",
       "trainer_sight_or_berry_tree_id": "0",
       "script": "Route23_EventScript_CascadeBadgeGuard",
-      "flag": "0"
+      "flag": "0",
+      "type": "object"
     },
     {
-      "type": "object",
       "graphics_id": "OBJ_EVENT_GFX_POLICEMAN",
+      "in_connection": false,
       "x": 8,
       "y": 140,
       "elevation": 3,
@@ -52,11 +53,12 @@
       "trainer_type": "TRAINER_TYPE_NONE",
       "trainer_sight_or_berry_tree_id": "0",
       "script": "Route23_EventScript_ThunderBadgeGuard",
-      "flag": "0"
+      "flag": "0",
+      "type": "object"
     },
     {
-      "type": "object",
       "graphics_id": "OBJ_EVENT_GFX_POLICEMAN",
+      "in_connection": false,
       "x": 14,
       "y": 123,
       "elevation": 3,
@@ -66,11 +68,12 @@
       "trainer_type": "TRAINER_TYPE_NONE",
       "trainer_sight_or_berry_tree_id": "0",
       "script": "Route23_EventScript_RainbowBadgeGuard",
-      "flag": "0"
+      "flag": "0",
+      "type": "object"
     },
     {
-      "type": "object",
       "graphics_id": "OBJ_EVENT_GFX_POLICEMAN",
+      "in_connection": false,
       "x": 16,
       "y": 112,
       "elevation": 3,
@@ -80,11 +83,12 @@
       "trainer_type": "TRAINER_TYPE_NONE",
       "trainer_sight_or_berry_tree_id": "0",
       "script": "Route23_EventScript_SoulBadgeGuard",
-      "flag": "0"
+      "flag": "0",
+      "type": "object"
     },
     {
-      "type": "object",
       "graphics_id": "OBJ_EVENT_GFX_POLICEMAN",
+      "in_connection": false,
       "x": 10,
       "y": 94,
       "elevation": 3,
@@ -94,11 +98,12 @@
       "trainer_type": "TRAINER_TYPE_NONE",
       "trainer_sight_or_berry_tree_id": "0",
       "script": "Route23_EventScript_MarshBadgeGuard",
-      "flag": "0"
+      "flag": "0",
+      "type": "object"
     },
     {
-      "type": "object",
       "graphics_id": "OBJ_EVENT_GFX_POLICEMAN",
+      "in_connection": false,
       "x": 14,
       "y": 61,
       "elevation": 3,
@@ -108,11 +113,12 @@
       "trainer_type": "TRAINER_TYPE_NONE",
       "trainer_sight_or_berry_tree_id": "0",
       "script": "Route23_EventScript_VolcanoBadgeGuard",
-      "flag": "0"
+      "flag": "0",
+      "type": "object"
     },
     {
-      "type": "object",
       "graphics_id": "OBJ_EVENT_GFX_POLICEMAN",
+      "in_connection": false,
       "x": 6,
       "y": 35,
       "elevation": 3,
@@ -122,7 +128,8 @@
       "trainer_type": "TRAINER_TYPE_NONE",
       "trainer_sight_or_berry_tree_id": "0",
       "script": "Route23_EventScript_EarthBadgeGuard",
-      "flag": "0"
+      "flag": "0",
+      "type": "object"
     }
   ],
   "warp_events": [
