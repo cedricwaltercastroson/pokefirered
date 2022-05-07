@@ -18,7 +18,7 @@ To set up the repository, see [INSTALL.md](INSTALL.md).
 - Disabled Trading and Battling on 2F of Pokemon Centres.
 - Added the ability to refill PP moves after battles.
 - Safari captured Pokemons will default to the standard Pokeball.
-- Looking into making 151 all catchable in a single rom.
+- 151 all catchable in a single rom.
 
 ## Todo list
 
