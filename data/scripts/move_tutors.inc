@@ -359,6 +359,109 @@ EventScript_MimicTaughtFemale:: @ 81C4D7B
 	msgbox Text_MimicTaughtFemale
 	return
 
+.set LOCALID_CAPE_BRINK_TUTOR, 3
+
+FuchsiaCity_House3_EventScript_StarterTutor:: @ 81C4DEC
+	goto_if_questlog EventScript_ReleaseEnd
+	special QuestLog_CutRecording
+	lock
+	faceplayer
+	goto_if_set FLAG_LEARNED_ALL_MOVES_AT_CAPE_BRINK, CapeBrinkTutor_EventScript_TaughtAllMoves
+	goto_if_set FLAG_TEMP_2, CapeBrinkTutor_EventScript_MoveJustTaught
+	getfirstpartymonname 0
+	msgbox Text_UltimateMoveThatMon
+	specialvar VAR_RESULT, CapeBrinkGetMoveToTeachLeadPokemon
+	compare VAR_RESULT, FALSE
+	goto_if_eq CapeBrinkTutor_EventScript_NoLeadStarter
+	copyvar VAR_0x8009, VAR_0x8005
+	compare VAR_FACING, DIR_NORTH
+	call_if_eq CapeBrinkTutor_EventScript_JumpInPlaceDown
+	compare VAR_FACING, DIR_SOUTH
+	call_if_eq CapeBrinkTutor_EventScript_JumpInPlaceUp
+	compare VAR_FACING, DIR_EAST
+	call_if_eq CapeBrinkTutor_EventScript_JumpInPlaceLeft
+	compare VAR_FACING, DIR_WEST
+	call_if_eq CapeBrinkTutor_EventScript_JumpInPlaceRight
+	msgbox Text_AllowMeToTeachMonUltimateMove, MSGBOX_YESNO
+	compare VAR_RESULT, NO
+	goto_if_eq CapeBrinkTutor_EventScript_DeclineMove
+	call EventScript_CanOnlyBeLearnedOnce
+	compare VAR_RESULT, NO
+	goto_if_eq CapeBrinkTutor_EventScript_DeclineMove
+	msgbox Text_LetMeConferUltimateMove
+	closemessage
+	fadescreen FADE_TO_BLACK
+	goto CapeBrinkTutor_EventScript_ChooseMon
+
+@ Unused
+CapeBrinkTutor_EventScript_FadeTaughtMove:: @ 81C4E8F
+	fadescreen FADE_FROM_BLACK
+	goto CapeBrinkTutor_EventScript_TaughtMove
+	end
+
+CapeBrinkTutor_EventScript_MoveJustTaught:: @ 81C4E97
+	msgbox Text_MakeBestUseOfMove
+	release
+	end
+
+CapeBrinkTutor_EventScript_TaughtAllMoves:: @ 81C4EA1
+	msgbox Text_FeelRejuvenated
+	release
+	end
+
+CapeBrinkTutor_EventScript_TaughtMove:: @ 81C4EAB
+	copyvar VAR_0x8005, VAR_0x8009
+	specialvar VAR_RESULT, HasLearnedAllMovesFromCapeBrinkTutor
+	compare VAR_RESULT, TRUE
+	goto_if_eq CapeBrinkTutor_EventScript_LearnedAllMoves
+	msgbox Text_TaughtMove
+	setflag FLAG_TEMP_2
+	release
+	end
+
+CapeBrinkTutor_EventScript_LearnedAllMoves:: @ 81C4ECD
+	msgbox Text_PassedOnEverythingIKnow
+	setflag FLAG_LEARNED_ALL_MOVES_AT_CAPE_BRINK
+	release
+	end
+
+CapeBrinkTutor_EventScript_ChooseMon:: @ 81C4EDA
+	call EventScript_ChooseMoveTutorMon
+	compare VAR_RESULT, FALSE
+	goto_if_eq CapeBrinkTutor_EventScript_DeclineMove
+	goto CapeBrinkTutor_EventScript_TaughtMove
+	end
+
+CapeBrinkTutor_EventScript_JumpInPlaceDown:: @ 81C4EF0
+	applymovement LOCALID_CAPE_BRINK_TUTOR, Movement_JumpInPlaceDown
+	waitmovement 0
+	return
+
+CapeBrinkTutor_EventScript_JumpInPlaceUp:: @ 81C4EFB
+	applymovement LOCALID_CAPE_BRINK_TUTOR, Movement_JumpInPlaceUp
+	waitmovement 0
+	return
+
+CapeBrinkTutor_EventScript_JumpInPlaceLeft:: @ 81C4F06
+	applymovement LOCALID_CAPE_BRINK_TUTOR, Movement_JumpInPlaceLeft
+	waitmovement 0
+	return
+
+CapeBrinkTutor_EventScript_JumpInPlaceRight:: @ 81C4F11
+	applymovement LOCALID_CAPE_BRINK_TUTOR, Movement_JumpInPlaceRight
+	waitmovement 0
+	return
+
+CapeBrinkTutor_EventScript_DeclineMove:: @ 81C4F1C
+	msgbox Text_YouRejectIt
+	release
+	end
+
+CapeBrinkTutor_EventScript_NoLeadStarter:: @ 81C4F26
+	msgbox Text_JustMistaken
+	release
+	end
+
 EventScript_ChooseMoveTutorMon:: @ 81C4F30
 	special ChooseMonForMoveTutor
 	waitstate
