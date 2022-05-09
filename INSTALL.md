@@ -33,8 +33,8 @@ If this works, then proceed to [Installation](#installation).
 
 To set up the repository:
 
-    git clone https://github.com/pret/pokefirered
-    git clone https://github.com/pret/agbcc
+    git clone https://github.com/cedricwaltercson/pokefirered
+    git clone https://github.com/cedricwaltercson/agbcc
 
     cd ./agbcc
     sh build.sh
@@ -54,12 +54,10 @@ If only `.c` or `.s` files were changed, turn off the dependency scanning tempor
 
     make -j$(nproc) NODEP=1
 
-Convenient targets have been defined to build Pokémon LeafGreen and the 1.1 revisions of both games:
+Convenient targets have been defined to build Pokémon FireRed and the 1.1 revisions of both games:
 
     # FireRed 1.1
     make -j$(nproc) firered_rev1
-    # LeafGreen 1.1
-    make -j$(nproc) leafgreen_rev1
 
 **Note:** If the build command is not recognized on Linux, including the Linux environment used within Windows, run `nproc` and replace `$(nproc)` with the returned value (e.g.: `make -j4`). Because `nproc` is not available on macOS, the alternative is `sysctl -n hw.ncpu`.
 
