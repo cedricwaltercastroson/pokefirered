@@ -77,7 +77,7 @@ Some tips before proceeding:
     sudo apt update && sudo apt upgrade
     ```
 
-> Note: If the repository you plan to build has an **[older revision of the INSTALL.md](https://github.com/pret/pokefirered/blob/b7a6240/INSTALL.md)**, then follow the [legacy WSL1 instructions](docs/legacy_WSL1_INSTALL.md) from here.
+> Note: If the repository you plan to build has an **[older revision of the INSTALL.md](https://github.com/cedricwaltercson/pokefirered/blob/b7a6240/INSTALL.md)**, then follow the [legacy WSL1 instructions](docs/legacy_WSL1_INSTALL.md) from here.
 
 4. Certain packages are required to build pokefirered. Install these packages by running the following command:
 
@@ -301,7 +301,7 @@ Then proceed to [Choosing where to store pokefirered (Linux)](#choosing-where-to
 <details>
     <summary><i>Note for legacy repos...</i></summary>
 
->   If the repository you plan to build has an **[older revision of the INSTALL.md](https://github.com/pret/pokefirered/blob/571c598/INSTALL.md)**,
+>   If the repository you plan to build has an **[older revision of the INSTALL.md](https://github.com/cedricwaltercson/pokefirered/blob/571c598/INSTALL.md)**,
 >   then you will have to install devkitARM. Install all the above packages except binutils-arm-none-eabi, and follow the instructions to
 >   [install devkitARM on Debian/Ubuntu-based distributions](#installing-devkitarm-on-debianubuntu-based-distributions).
 </details>
@@ -344,7 +344,7 @@ If this works, then proceed to [Installation](#installation). Otherwise, ask for
 1. If pokefirered is not already downloaded (some users may prefer to download pokefirered via a git client like GitHub Desktop), run:
 
     ```bash
-    git clone https://github.com/pret/pokefirered
+    git clone https://github.com/cedricwaltercson/pokefirered
     ```
 
     <details>
@@ -364,7 +364,7 @@ If this works, then proceed to [Installation](#installation). Otherwise, ask for
 - If agbcc has **not been built before** in the folder where you chose to store pokefirered, run the following commands to build and install it into pokefirered:
 
     ```bash
-    git clone https://github.com/pret/agbcc
+    git clone https://github.com/cedricwaltercson/agbcc
     cd agbcc
     ./build.sh
     ./install.sh ../pokefirered
