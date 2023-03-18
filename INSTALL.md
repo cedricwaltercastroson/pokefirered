@@ -427,7 +427,7 @@ make leafgreen
 
 This project can also build the version 1.1 ROMs of both FireRed and LeafGreen. To build each, run
 ```bash
-make firered_rev1  # for FireRed 1.1
+make -j16 firered_rev1  # for FireRed 1.1
 make leafgreen_rev1  # for LeafGreen 1.1
 ```
 
