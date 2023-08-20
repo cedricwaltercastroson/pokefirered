@@ -49,7 +49,7 @@ void RefillMovesPlayerParty(void)
 {
     u8 i, j;
     u8 ppBonuses;
-    u8 arg[1];
+    u8 arg[4];
 
     for(i = 0; i < gPlayerPartyCount; i++)
     {
@@ -64,6 +64,9 @@ void RefillMovesPlayerParty(void)
 
         // since status is u32, the 0 assignment here is probably for safety to prevent undefined data.
         arg[0] = 0;
+        arg[1] = 0;
+        arg[2] = 0;
+        arg[3] = 0;
     }
 }
 

@@ -3101,8 +3101,9 @@ static void atk23_getexp(void)
                         holdEffect = gSaveBlock1Ptr->enigmaBerry.holdEffect;
                     else
                         holdEffect = ItemId_GetHoldEffect(item);
-                    if (holdEffect == HOLD_EFFECT_EXP_SHARE)
-                        ++viaExpShare;
+                        ++viaExpShare; //testing exp share
+//                    if (holdEffect == HOLD_EFFECT_EXP_SHARE)
+//                        ++viaExpShare;
                 }
             }
             calculatedExp = gBaseStats[gBattleMons[gBattlerFainted].species].expYield * gBattleMons[gBattlerFainted].level / 7;
@@ -3135,13 +3136,14 @@ static void atk23_getexp(void)
                 holdEffect = gSaveBlock1Ptr->enigmaBerry.holdEffect;
             else
                 holdEffect = ItemId_GetHoldEffect(item);
-            if (holdEffect != HOLD_EFFECT_EXP_SHARE && !(gBattleStruct->sentInPokes & 1))
+/*            if (holdEffect != HOLD_EFFECT_EXP_SHARE && !(gBattleStruct->sentInPokes & 1))
             {
                 *(&gBattleStruct->sentInPokes) >>= 1;
                 gBattleScripting.atk23_state = 5;
                 gBattleMoveDamage = 0; // used for exp
-            }
+            }            
             else if (GetMonData(&gPlayerParty[gBattleStruct->expGetterMonId], MON_DATA_LEVEL) == MAX_LEVEL)
+*/          if (GetMonData(&gPlayerParty[gBattleStruct->expGetterMonId], MON_DATA_LEVEL) == MAX_LEVEL)
             {
                 *(&gBattleStruct->sentInPokes) >>= 1;
                 gBattleScripting.atk23_state = 5;
@@ -3164,8 +3166,9 @@ static void atk23_getexp(void)
                         gBattleMoveDamage = *exp;
                     else
                         gBattleMoveDamage = 0;
-                    if (holdEffect == HOLD_EFFECT_EXP_SHARE)
-                        gBattleMoveDamage += gExpShareExp;
+                        gBattleMoveDamage += gExpShareExp; // test exp share
+//                    if (holdEffect == HOLD_EFFECT_EXP_SHARE)
+//                        gBattleMoveDamage += gExpShareExp;
                     if (holdEffect == HOLD_EFFECT_LUCKY_EGG)
                         gBattleMoveDamage = (gBattleMoveDamage * 150) / 100;
                     if (gBattleTypeFlags & BATTLE_TYPE_TRAINER)

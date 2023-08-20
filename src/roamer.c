@@ -33,7 +33,8 @@ EWRAM_DATA u8 sRoamerLocation[2] = {};
 //         map in the location table there is not a location set that starts with
 //         that map then the roamer will be significantly less likely to move away
 //         from that map when it lands there.
-static const u8 sRoamerLocations[][7] = {
+//Original:
+/*static const u8 sRoamerLocations[][7] = {
     {MAP_NUM(ROUTE1), MAP_NUM(ROUTE2), MAP_NUM(ROUTE21_NORTH), MAP_NUM(ROUTE22), ___, ___, ___},
     {MAP_NUM(ROUTE2), MAP_NUM(ROUTE1), MAP_NUM(ROUTE3), MAP_NUM(ROUTE22), ___, ___, ___},
     {MAP_NUM(ROUTE3), MAP_NUM(ROUTE2), MAP_NUM(ROUTE4), ___, ___, ___, ___},
@@ -61,11 +62,14 @@ static const u8 sRoamerLocations[][7] = {
     {MAP_NUM(ROUTE25), MAP_NUM(ROUTE24), MAP_NUM(ROUTE9), ___, ___, ___, ___},
     {___, ___, ___, ___, ___, ___, ___}
 };
+*/
 
-static const u8 testsRoamerLocations[][7] = {
-    {MAP_NUM(ROUTE1), MAP_NUM(ROUTE21_NORTH), MAP_NUM(ROUTE22), ___, ___, ___, ___},
-    {MAP_NUM(ROUTE21_NORTH), MAP_NUM(ROUTE1), MAP_NUM(ROUTE22), ___, ___, ___, ___},
-    {MAP_NUM(ROUTE22), MAP_NUM(ROUTE1), MAP_NUM(ROUTE21_NORTH), ___, ___, ___, ___}
+//Initially want to capture MEW on ROUTE21_NORTH.
+//TestRoamer:
+static const u8 sRoamerLocations[][7] = {
+    {MAP_NUM(ROUTE1), MAP_NUM(ROUTE21_NORTH), MAP_NUM(PALLET_TOWN), ___, ___, ___, ___},
+    {MAP_NUM(ROUTE21_NORTH), MAP_NUM(ROUTE1), MAP_NUM(PALLET_TOWN), ___, ___, ___, ___},
+    {___, ___, ___, ___, ___, ___, ___}
 };
 
 #undef ___
