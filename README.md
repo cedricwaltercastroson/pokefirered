@@ -19,12 +19,8 @@ To set up the repository, see [INSTALL.md](INSTALL.md).
 - Added the ability to refill PP moves after battles.
 - Safari captured Pokemons will default to the standard Pokeball.
 - 151 all catchable in a single rom.
+- EXP.SHARE is now always on in your party and no item required.
 
 ## Todo list
 
 - Looking into party lead following pokemon..
-- Looking into EXP.SHARE
-
-## Contacts
-
-You can find us on [Discord](https://discord.gg/d5dubZ3) and [IRC](https://web.libera.chat/?#pret).
