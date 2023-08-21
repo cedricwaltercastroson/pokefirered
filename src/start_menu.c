@@ -739,7 +739,8 @@ static u8 SaveDialogCB_PrintAskOverwriteText(void)
     if (gDifferentSaveFile == TRUE)
         PrintSaveTextWithFollowupFunc(gText_DifferentGameFile, SaveDialogCB_AskReplacePreviousFilePrintYesNoMenu);
     else
-        PrintSaveTextWithFollowupFunc(gText_AlreadySaveFile_WouldLikeToOverwrite, SaveDialogCB_AskOverwritePrintYesNoMenu);
+//        PrintSaveTextWithFollowupFunc(gText_AlreadySaveFile_WouldLikeToOverwrite, SaveDialogCB_AskOverwritePrintYesNoMenu);
+        sSaveDialogCB = SaveDialogCB_PrintSavingDontTurnOffPower;
     return SAVECB_RETURN_CONTINUE;
 }
 
