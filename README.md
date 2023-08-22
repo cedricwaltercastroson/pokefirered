@@ -1,10 +1,5 @@
 # Pokémon FireRed
 
-[![Build Status][travis-badge]][travis]
-
-[travis]: https://travis-ci.org/pret/pokefirered
-[travis-badge]: https://travis-ci.org/pret/pokefirered.svg?branch=master
-
 This is a disassembly of Pokémon FireRed.
 
 To set up the repository, see [INSTALL.md](INSTALL.md).
@@ -19,12 +14,10 @@ To set up the repository, see [INSTALL.md](INSTALL.md).
 - Added the ability to refill PP moves after battles.
 - Safari captured Pokemons will default to the standard Pokeball.
 - 151 all catchable in a single rom.
+- EXP.Share is on by default and no item required.(Also means I've removed the Aide that gives you the item)
+- Faster Save.(Removed extra prompt when saving unless it is of a different game)
+- All Pokemon now are genderless just like Gen1 Classic
 
 ## Todo list
 
 - Looking into party lead following pokemon..
-- Looking into EXP.SHARE
-
-## Contacts
-
-You can find us on [Discord](https://discord.gg/d5dubZ3) and [IRC](https://web.libera.chat/?#pret).
