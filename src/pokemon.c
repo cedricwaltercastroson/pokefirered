@@ -1886,7 +1886,7 @@ u8 GetMonGender(struct Pokemon *mon)
 {
     return GetBoxMonGender(&mon->box);
 }
-
+/*Original:
 u8 GetBoxMonGender(struct BoxPokemon *boxMon)
 {
     u16 species = GetBoxMonData(boxMon, MON_DATA_SPECIES, NULL);
@@ -1920,6 +1920,42 @@ u8 GetGenderFromSpeciesAndPersonality(u16 species, u32 personality)
         return MON_FEMALE;
     else
         return MON_MALE;
+}
+*/
+
+u8 GetBoxMonGender(struct BoxPokemon *boxMon)
+{
+    u16 species = GetBoxMonData(boxMon, MON_DATA_SPECIES, NULL);
+    u32 personality = GetBoxMonData(boxMon, MON_DATA_PERSONALITY, NULL);
+
+    switch (gBaseStats[species].genderRatio)
+    {
+    case MON_MALE:
+    case MON_FEMALE:
+    case MON_GENDERLESS:
+        return MON_GENDERLESS;
+    }
+
+    if (gBaseStats[species].genderRatio > (personality & 0xFF))
+        return MON_GENDERLESS;
+    else
+        return MON_GENDERLESS;
+}
+
+u8 GetGenderFromSpeciesAndPersonality(u16 species, u32 personality)
+{
+    switch (gBaseStats[species].genderRatio)
+    {
+    case MON_MALE:
+    case MON_FEMALE:
+    case MON_GENDERLESS:
+        return MON_GENDERLESS;
+    }
+
+    if (gBaseStats[species].genderRatio > (personality & 0xFF))
+        return MON_GENDERLESS;
+    else
+        return MON_GENDERLESS;
 }
 
 void SetMultiuseSpriteTemplateToPokemon(u16 speciesTag, u8 battlerPosition)
