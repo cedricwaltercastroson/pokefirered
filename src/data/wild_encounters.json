@@ -3202,6 +3202,11 @@
                 "min_level": 61,
                 "max_level": 61,
                 "species": "SPECIES_ALAKAZAM"
+              },
+              {
+                "min_level": 65,
+                "max_level": 65,
+                "species": "SPECIES_RHYDON"
               }
             ]
           },
@@ -3560,6 +3565,11 @@
                 "min_level": 64,
                 "max_level": 64,
                 "species": "SPECIES_MACHAMP"
+              },
+              {
+                "min_level": 65,
+                "max_level": 65,
+                "species": "SPECIES_RHYDON"
               }
             ]
           },
@@ -3748,6 +3758,11 @@
                 "min_level": 61,
                 "max_level": 61,
                 "species": "SPECIES_GOLBAT"
+              },
+              {
+                "min_level": 65,
+                "max_level": 65,
+                "species": "SPECIES_RHYDON"
               }
             ]
           },
