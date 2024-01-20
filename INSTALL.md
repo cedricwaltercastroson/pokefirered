@@ -130,7 +130,7 @@ Note that in msys2, Copy is Ctrl+Insert and Paste is Shift+Insert.
 2. Certain packages are required to build pokefirered. Install these by running the following command:
 
     ```bash
-    pacman -S make zlib-devel git mingw-w64-x86_64-gcc mingw-w64-x86_64-libpng
+    pacman -S make zlib-devel git mingw-w64-x86_64-gcc mingw-w64-x86_64-libpng mingw-w64-x86_64-arm-none-eabi-binutils mingw-w64-x86_64-arm-none-eabi-gcc
     ```
     <details>
         <summary><i>Note...</i></summary>
