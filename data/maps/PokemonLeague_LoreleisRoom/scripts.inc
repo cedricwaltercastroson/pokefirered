@@ -12,9 +12,8 @@ PokemonLeague_LoreleisRoom_OnResume:: @ 8162586
 	end
 
 PokemonLeague_LoreleisRoom_OnLoad:: @ 8162591
-	clearflag FLAG_DEFEATED_LORELEI
-	compare VAR_MAP_SCENE_POKEMON_LEAGUE, 1
-	call_if_eq PokemonLeague_LoreleisRoom_EventScript_CloseEntry
+	call_if_set FLAG_DEFEATED_LORELEI, PokemonLeague_LoreleisRoom_EventScript_SetDoorOpen
+	call_if_set FLAG_DEFEATED_LORELEI, PokemonLeague_LoreleisRoom_EventScript_CloseEntry
 	end
 
 PokemonLeague_LoreleisRoom_EventScript_CloseEntry:: @ 81625A6
