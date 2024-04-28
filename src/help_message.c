@@ -5,7 +5,7 @@
 
 static EWRAM_DATA u8 sHelpMessageWindowId = 0;
 
-const u8 gUnknown_84566A8[] = INCBIN_U8("graphics/unknown/unknown_84566a8.bin");
+const u8 gUnknown_84566A8[] = INCBIN_U8("graphics/help_system/msg_window.4bpp");
 
 static const struct WindowTemplate sHelpMessageWindowTemplate = {
     .bg = 0,
