@@ -128,8 +128,8 @@
                 "species": "SPECIES_KAKUNA"
               },
               {
-                "min_level": 3,
-                "max_level": 3,
+                "min_level": 5,
+                "max_level": 5,
                 "species": "SPECIES_PIKACHU"
               },
               {
@@ -197,8 +197,8 @@
                 "species": "SPECIES_METAPOD"
               },
               {
-                "min_level": 3,
-                "max_level": 3,
+                "min_level": 5,
+                "max_level": 5,
                 "species": "SPECIES_PIKACHU"
               },
               {

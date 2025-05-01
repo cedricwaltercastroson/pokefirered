@@ -9006,6 +9006,21 @@ static void atkEF_handleballthrow(void)
             {
                 switch (gLastUsedItem)
                 {
+                case ITEM_POKE_BALL:
+                    ballMultiplier = gBattleResults.battleTurnCounter + 10;
+                    if (ballMultiplier > 20)
+                        ballMultiplier = 100;
+                    break;
+                case ITEM_GREAT_BALL:
+                    ballMultiplier = gBattleResults.battleTurnCounter + 10;
+                    if (ballMultiplier > 10)
+                        ballMultiplier = 100;
+                    break;
+                case ITEM_ULTRA_BALL:
+                    ballMultiplier = gBattleResults.battleTurnCounter + 10;
+                    if (ballMultiplier > 0)
+                        ballMultiplier = 100;
+                    break;
                 case ITEM_NET_BALL:
                     if (IS_BATTLER_OF_TYPE(gBattlerTarget, TYPE_WATER) || IS_BATTLER_OF_TYPE(gBattlerTarget, TYPE_BUG))
                         ballMultiplier = 30;
@@ -9062,18 +9077,19 @@ static void atkEF_handleballthrow(void)
                 {
                     gBattleResults.usedMasterBall = TRUE;
                 }
-                else
-                {
-                    if (gBattleResults.catchAttempts[gLastUsedItem - ITEM_ULTRA_BALL] < 0xFF)
-                        ++gBattleResults.catchAttempts[gLastUsedItem - ITEM_ULTRA_BALL];
-                }
+//                else
+//                {
+//                    if (gBattleResults.catchAttempts[gLastUsedItem - ITEM_ULTRA_BALL] < 0xFF)
+//                        ++gBattleResults.catchAttempts[gLastUsedItem - ITEM_ULTRA_BALL];
+//                }
             }
             if (odds > 254) // mon caught
             {
                 BtlController_EmitBallThrowAnim(0, BALL_3_SHAKES_SUCCESS);
                 MarkBattlerForControllerExec(gActiveBattler);
                 gBattlescriptCurrInstr = BattleScript_SuccessBallThrow;
-                if((gLastUsedItem == ITEM_MASTER_BALL) || (gLastUsedItem == ITEM_GREAT_BALL) || (gLastUsedItem == ITEM_ULTRA_BALL))
+//                if((gLastUsedItem == ITEM_MASTER_BALL) || (gLastUsedItem == ITEM_GREAT_BALL) || (gLastUsedItem == ITEM_ULTRA_BALL))
+                if(gLastUsedItem == ITEM_MASTER_BALL)
                 {
                     SetMonData(&gEnemyParty[gBattlerPartyIndexes[gBattlerTarget]], MON_DATA_POKEBALL, &gLastUsedItem);
                 }
@@ -9100,7 +9116,8 @@ static void atkEF_handleballthrow(void)
                 if (shakes == BALL_3_SHAKES_SUCCESS) // mon caught, copy of the code above
                 {
                     gBattlescriptCurrInstr = BattleScript_SuccessBallThrow;
-                    if((gLastUsedItem == ITEM_MASTER_BALL) || (gLastUsedItem == ITEM_GREAT_BALL) || (gLastUsedItem == ITEM_ULTRA_BALL))
+//                if((gLastUsedItem == ITEM_MASTER_BALL) || (gLastUsedItem == ITEM_GREAT_BALL) || (gLastUsedItem == ITEM_ULTRA_BALL))
+                if(gLastUsedItem == ITEM_MASTER_BALL)
                     {
                         SetMonData(&gEnemyParty[gBattlerPartyIndexes[gBattlerTarget]], MON_DATA_POKEBALL, &gLastUsedItem);
                     }
