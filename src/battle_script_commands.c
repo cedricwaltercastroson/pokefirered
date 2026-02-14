@@ -9007,19 +9007,19 @@ static void atkEF_handleballthrow(void)
                 switch (gLastUsedItem)
                 {
                 case ITEM_POKE_BALL:
-                    ballMultiplier = gBattleResults.battleTurnCounter + 2;
-                    if (ballMultiplier > 20)
-                        ballMultiplier = 100;
+                    ballMultiplier = 10 + gBattleResults.battleTurnCounter;
+                    if (ballMultiplier > 25)
+                        ballMultiplier = 25;
                     break;
                 case ITEM_GREAT_BALL:
-                    ballMultiplier = gBattleResults.battleTurnCounter + 1;
-                    if (ballMultiplier > 10)
-                        ballMultiplier = 100;
+                    ballMultiplier = 15 + (gBattleResults.battleTurnCounter * 2);
+                    if (ballMultiplier > 35)
+                        ballMultiplier = 35;
                     break;
                 case ITEM_ULTRA_BALL:
-                    ballMultiplier = gBattleResults.battleTurnCounter;
-                    if (ballMultiplier > 0)
-                        ballMultiplier = 100;
+                    ballMultiplier = 20 + (gBattleResults.battleTurnCounter * 5);
+                    if (ballMultiplier > 45)
+                        ballMultiplier = 45;
                     break;
                 case ITEM_NET_BALL:
                     if (IS_BATTLER_OF_TYPE(gBattlerTarget, TYPE_WATER) || IS_BATTLER_OF_TYPE(gBattlerTarget, TYPE_BUG))
