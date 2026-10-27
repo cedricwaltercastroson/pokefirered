@@ -2,6 +2,8 @@
 #include "random.h"
 #include "overworld.h"
 #include "field_specials.h"
+#include "field_player_avatar.h"
+#include "fieldmap.h"
 #include "constants/maps.h"
 #include "constants/region_map_sections.h"
 
@@ -64,7 +66,8 @@ EWRAM_DATA u8 sRoamerLocation[2] = {};
 };
 */
 
-//Initially want to capture MEW on ROUTE21_NORTH.
+// The original wandering table remains for non-Mew roamers. Mew uses a
+// single fixed map instead of this table, avoiding unbounded location loops.
 //TestRoamer:
 static const u8 sRoamerLocations[][7] = {
     {MAP_NUM(ROUTE1), MAP_NUM(ROUTE21_NORTH), MAP_NUM(PALLET_TOWN), ___, ___, ___, ___},
@@ -75,6 +78,24 @@ static const u8 sRoamerLocations[][7] = {
 #undef ___
 #define NUM_LOCATION_SETS (ARRAY_COUNT(sRoamerLocations) - 1)
 #define NUM_LOCATIONS_PER_SET (ARRAY_COUNT(sRoamerLocations[0]))
+
+// Mew is a one-off post-League roamer whose sole encounter map is the
+// grass on Route 21 North. Its save-block Roamer data still tracks capture,
+// defeat, HP, status, IVs and personality. The map location is only a runtime
+// cache; a fixed location also repairs older saves that last saw Mew elsewhere.
+#define MEW_ROAMER_MAP_GROUP MAP_GROUP(ROUTE21_NORTH)
+#define MEW_ROAMER_MAP_NUM   MAP_NUM(ROUTE21_NORTH)
+
+static bool8 IsStationaryMewRoamer(void)
+{
+    return ROAMER->active && ROAMER->species == SPECIES_MEW;
+}
+
+static void PinMewRoamerToRoute21(void)
+{
+    sRoamerLocation[MAP_GRP] = MEW_ROAMER_MAP_GROUP;
+    sRoamerLocation[MAP_NUM] = MEW_ROAMER_MAP_NUM;
+}
 
 void ClearRoamerData(void)
 {
@@ -123,8 +144,13 @@ void CreateInitialRoamerMon(void)
     ROAMER->cute = GetMonData(mon, MON_DATA_CUTE);
     ROAMER->smart = GetMonData(mon, MON_DATA_SMART);
     ROAMER->tough = GetMonData(mon, MON_DATA_TOUGH);
-    sRoamerLocation[MAP_GRP] = ROAMER_MAP_GROUP;
-    sRoamerLocation[MAP_NUM] = sRoamerLocations[Random() % NUM_LOCATION_SETS][0];
+    if (species == SPECIES_MEW)
+        PinMewRoamerToRoute21();
+    else
+    {
+        sRoamerLocation[MAP_GRP] = ROAMER_MAP_GROUP;
+        sRoamerLocation[MAP_NUM] = sRoamerLocations[Random() % NUM_LOCATION_SETS][0];
+    }
 }
 
 void InitRoamer(void)
@@ -152,6 +178,14 @@ void RoamerMoveToOtherLocationSet(void)
     if (!ROAMER->active)
         return;
 
+    // Never enter the roaming location-selection loop for Mew. It can have
+    // no valid alternative destination, which formerly caused a soft-lock.
+    if (IsStationaryMewRoamer())
+    {
+        PinMewRoamerToRoute21();
+        return;
+    }
+
     sRoamerLocation[MAP_GRP] = ROAMER_MAP_GROUP;
 
     // Choose a location set that starts with a map
@@ -171,6 +205,14 @@ void RoamerMoveToOtherLocationSet(void)
 void RoamerMove(void)
 {
     u8 locSet = 0;
+
+    // Called on normal map transitions. Mew must never select another map,
+    // and must not consume encounter RNG while re-pinning its location.
+    if (IsStationaryMewRoamer())
+    {
+        PinMewRoamerToRoute21();
+        return;
+    }
 
     if ((Random() % 16) == 0)
     {
@@ -207,6 +249,14 @@ void RoamerMove(void)
 
 bool8 IsRoamerAt(u8 mapGroup, u8 mapNum)
 {
+    // Older save data may have placed Mew on Route 1 or Pallet Town. Use the
+    // fixed Route 21 location even before the next overworld map load.
+    if (IsStationaryMewRoamer())
+    {
+        PinMewRoamerToRoute21();
+        return mapGroup == MEW_ROAMER_MAP_GROUP && mapNum == MEW_ROAMER_MAP_NUM;
+    }
+
     if (ROAMER->active && mapGroup == sRoamerLocation[MAP_GRP] && mapNum == sRoamerLocation[MAP_NUM])
         return TRUE;
     else
@@ -240,15 +290,25 @@ void CreateRoamerMonInstance(void)
 
 bool8 TryStartRoamerEncounter(void)
 {
-    if (IsRoamerAt(gSaveBlock1Ptr->location.mapGroup, gSaveBlock1Ptr->location.mapNum) == TRUE && (Random() % 4) == 0)
-    {
-        CreateRoamerMonInstance();
-        return TRUE;
-    }
-    else
-    {
+    s16 x, y;
+
+    if (!IsRoamerAt(gSaveBlock1Ptr->location.mapGroup, gSaveBlock1Ptr->location.mapNum))
         return FALSE;
+
+    // Route 21 has both grass and water encounters. Keep the hidden Mew
+    // encounter in grass only, including when using Sweet Scent; never Surf.
+    if (IsStationaryMewRoamer())
+    {
+        PlayerGetDestCoords(&x, &y);
+        if (MapGridGetMetatileAttributeAt(x, y, METATILE_ATTRIBUTE_ENCOUNTER_TYPE) != TILE_ENCOUNTER_LAND)
+            return FALSE;
     }
+
+    if ((Random() % 4) != 0)
+        return FALSE;
+
+    CreateRoamerMonInstance();
+    return TRUE;
 }
 void UpdateRoamerHPStatus(struct Pokemon *mon)
 {
@@ -265,6 +325,9 @@ void SetRoamerInactive(void)
 
 void GetRoamerLocation(u8 *mapGroup, u8 *mapNum)
 {
+    if (IsStationaryMewRoamer())
+        PinMewRoamerToRoute21();
+
     *mapGroup = sRoamerLocation[MAP_GRP];
     *mapNum = sRoamerLocation[MAP_NUM];
 }
@@ -273,5 +336,7 @@ u16 GetRoamerLocationMapSectionId(void)
 {
     if (!ROAMER->active)
         return MAPSEC_NONE;
+    if (IsStationaryMewRoamer())
+        PinMewRoamerToRoute21();
     return Overworld_GetMapHeaderByGroupAndId(sRoamerLocation[MAP_GRP], sRoamerLocation[MAP_NUM])->regionMapSectionId;
 }

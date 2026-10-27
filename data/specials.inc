@@ -452,4 +452,15 @@ gSpecials:: @ 815FD60
 	def_special UpdateLoreleiDollCollection
 	def_special LoopWingFlapSound
 	def_special CreateEventLegalEnemyMon
+	@ Appended at the end to preserve all original special IDs.
+	def_special Follower_PrepareInteraction
+	def_special Follower_EndInteraction
+	def_special Follower_BeginHealingRecall
+	def_special Follower_EndHealingRecall
+	@ v0.8.21: add at end so all previous special indices remain stable.
+	def_special Follower_PlayInteractionCry
+	@ v0.9.0.3.11: only add to the end to preserve original special IDs.
+	def_special TimeOfDay_SleepUntil
+	@ v0.9.0.3.13: append only, keep all previous special IDs stable.
+	def_special Follower_BeginHallOfFameRecall
 gSpecialsEnd::

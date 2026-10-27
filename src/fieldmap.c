@@ -5,6 +5,11 @@
 #include "new_menu_helpers.h"
 #include "quest_log.h"
 #include "fieldmap.h"
+#include "field_effect.h"
+#include "event_data.h"
+#include "constants/vars.h"
+#include "field_weather.h"
+#include "constants/maps.h"
 
 struct ConnectionFlags
 {
@@ -880,21 +885,338 @@ void Fieldmap_ApplyGlobalTintToPaletteSlot(u8 slot, u8 count)
     CpuFastCopy(gPlttBufferUnfaded + slot * 16, gPlttBufferFaded + slot * 16, count * 16 * sizeof(u16));
 }
 
+// v0.9.0.3.14: Crystal-inspired day/night selection at palette load time.
+// The approved Pallet Town/General night banks are preserved byte-for-byte.
+// Safari Zone reuses General and Fuchsia City night banks; no recolouring.
+// Only active-play-time map loads or one safe 08:00/20:00 boundary refresh
+// update BG palettes. Never write to hardware palettes from VBlank.
+// Using playtime avoids save migration: 60 active minutes = 24 game hours.
+// Day: 08:00 to 19:59; Night: 20:00 to 07:59.
+// Extra caution: Quest Log, special weather and interiors always own their palettes.
+// Optional QA override: 0 = automatic; 1 = force DAY; 2 = force NIGHT.
+// Leave as 0 in normal builds. Restriction to eligible outdoor maps still applies.
+#define TOD_DEBUG_FORCE_PERIOD 0
+#define TOD_UNINITIALIZED 0
+#define TOD_DAY           1
+#define TOD_NIGHT         2
+
+static EWRAM_DATA u8 sLastLoadedTimeOfDay = TOD_UNINITIALIZED;
+// 0 = idle, 1 = fade to black, 2 = fade back in. These are transient
+// overworld-only states and are NEVER written to the save file.
+static EWRAM_DATA u8 sTimeOfDayTransition = 0;
+static EWRAM_DATA bool8 sTimeOfDayPaletteRefresh = FALSE;
+#define TOD_FADE_DELAY 1 // Fast native BG/OBJ fade; roughly 1 second for both stages at 60 FPS.
+
+
+// These two are the EXACT user-approved v0.9.0.3.6.5 palettes.
+static const u16 sNightGeneral[] = INCBIN_U16("data/tilesets/night/pallet_town/general.gbapal");
+static const u16 sNightPalletTown[] = INCBIN_U16("data/tilesets/night/pallet_town/pallet_town.gbapal");
+static const u16 sNightViridianCity[] = INCBIN_U16("data/tilesets/night/outdoor/viridian_city/viridian_city.gbapal");
+static const u16 sNightPewterCity[] = INCBIN_U16("data/tilesets/night/outdoor/pewter_city/pewter_city.gbapal");
+static const u16 sNightCeruleanCity[] = INCBIN_U16("data/tilesets/night/outdoor/cerulean_city/cerulean_city.gbapal");
+static const u16 sNightLavenderTown[] = INCBIN_U16("data/tilesets/night/outdoor/lavender_town/lavender_town.gbapal");
+static const u16 sNightVermilionCity[] = INCBIN_U16("data/tilesets/night/outdoor/vermilion_city/vermilion_city.gbapal");
+static const u16 sNightCeladonCity[] = INCBIN_U16("data/tilesets/night/outdoor/celadon_city/celadon_city.gbapal");
+static const u16 sNightFuchsiaCity[] = INCBIN_U16("data/tilesets/night/outdoor/fuchsia_city/fuchsia_city.gbapal");
+static const u16 sNightCinnabarIsland[] = INCBIN_U16("data/tilesets/night/outdoor/cinnabar_island/cinnabar_island.gbapal");
+static const u16 sNightIndigoPlateau[] = INCBIN_U16("data/tilesets/night/outdoor/indigo_plateau/indigo_plateau.gbapal");
+static const u16 sNightSaffronCity[] = INCBIN_U16("data/tilesets/night/outdoor/saffron_city/saffron_city.gbapal");
+
+extern const struct Tileset gTileset_General;
+extern const struct Tileset gTileset_PalletTown;
+extern const struct Tileset gTileset_ViridianCity;
+extern const struct Tileset gTileset_PewterCity;
+extern const struct Tileset gTileset_CeruleanCity;
+extern const struct Tileset gTileset_LavenderTown;
+extern const struct Tileset gTileset_VermilionCity;
+extern const struct Tileset gTileset_CeladonCity;
+extern const struct Tileset gTileset_FuchsiaCity;
+extern const struct Tileset gTileset_CinnabarIsland;
+extern const struct Tileset gTileset_IndigoPlateau;
+extern const struct Tileset gTileset_SaffronCity;
+
+// Uses 30 active minutes DAY / 30 active minutes NIGHT (60 per full cycle).
+// The saved bed adjustment is in virtual minutes (0..1439); the faster clock
+// must never reinterpret this stored value as a real-time seconds offset.
+// SaveBlock layout and actual accumulated playtime remain unchanged.
+#define TOD_MINUTES_PER_CYCLE (24 * 60)
+#define TOD_DAY_START_MINUTES (8 * 60)
+#define TOD_NIGHT_START_MINUTES (20 * 60)
+static u32 TimeOfDay_GetPlaySeconds(void)
+{
+    return (u32)gSaveBlock2Ptr->playTimeHours * 3600
+         + (u32)gSaveBlock2Ptr->playTimeMinutes * 60
+         + gSaveBlock2Ptr->playTimeSeconds;
+}
+
+// One full 24-hour cycle runs in 3600 active gameplay seconds. Reducing
+// seconds modulo the real-time cycle before multiplication avoids overflow
+// on long-standing saves with large accumulated playtime.
+static u32 TimeOfDay_GetGameMinuteAtSeconds(u32 seconds)
+{
+    // Two virtual minutes per five seconds of active play.
+    return (TOD_DAY_START_MINUTES + (seconds % 3600) * 2 / 5)
+        % TOD_MINUTES_PER_CYCLE;
+}
+
+static bool8 TimeOfDay_IsNightAtSeconds(u32 seconds)
+{
+    u32 gameMinute = TimeOfDay_GetGameMinuteAtSeconds(seconds);
+    return gameMinute >= TOD_NIGHT_START_MINUTES
+        || gameMinute < TOD_DAY_START_MINUTES;
+}
+
+// 0 = choose 08:00, 1 = choose 20:00. Sleep starts a fresh 30-minute
+// period without modifying recorded playtime or the existing save layout.
+void TimeOfDay_SleepUntil(void)
+{
+    u32 targetMinute;
+    u32 unshiftedMinute;
+    if (gSaveBlock1Ptr == NULL || gSaveBlock2Ptr == NULL)
+        return;
+    if (gSpecialVar_0x8004 == 0)
+        targetMinute = TOD_DAY_START_MINUTES;
+    else if (gSpecialVar_0x8004 == 1)
+        targetMinute = TOD_NIGHT_START_MINUTES;
+    else
+        return;
+    unshiftedMinute = TimeOfDay_GetGameMinuteAtSeconds(TimeOfDay_GetPlaySeconds());
+    VarSet(VAR_SLEEP_TIME_OFFSET,
+           (targetMinute + TOD_MINUTES_PER_CYCLE - unshiftedMinute)
+           % TOD_MINUTES_PER_CYCLE);
+}
+
+static bool8 TimeOfDay_IsNight(void)
+{
+    u32 gameMinute;
+    // Keep the original unshifted path available for old saves.
+    if (VarGet(VAR_SLEEP_TIME_OFFSET) == 0)
+        return TimeOfDay_IsNightAtSeconds(TimeOfDay_GetPlaySeconds());
+
+    gameMinute = (TimeOfDay_GetGameMinuteAtSeconds(TimeOfDay_GetPlaySeconds())
+        + (u32)(VarGet(VAR_SLEEP_TIME_OFFSET) % TOD_MINUTES_PER_CYCLE))
+        % TOD_MINUTES_PER_CYCLE;
+    return gameMinute >= TOD_NIGHT_START_MINUTES
+        || gameMinute < TOD_DAY_START_MINUTES;
+}
+
+// All four outdoor Safari Zone sections use the General primary tileset and
+// the Fuchsia City secondary tileset. Both already have approved night banks.
+// Reuse those exact colours and the existing map-load/clock-boundary pipeline.
+// Outdoor weather eligibility continues to guard ordinary Kanto maps; special
+// Safari interiors and rest houses do not enter this switch.
+static bool8 TimeOfDay_IsEligibleMap(void)
+{
+    u16 mapId;
+
+    if (gSaveBlock1Ptr == NULL || gMapHeader.mapLayout == NULL)
+        return FALSE;
+
+    mapId = gSaveBlock1Ptr->location.mapNum | (gSaveBlock1Ptr->location.mapGroup << 8);
+    switch (mapId)
+    {
+    case MAP_SAFARI_ZONE_CENTER:
+    case MAP_SAFARI_ZONE_EAST:
+    case MAP_SAFARI_ZONE_NORTH:
+    case MAP_SAFARI_ZONE_WEST:
+        // Only the open-air Safari Zone layout is eligible. Should a map
+        // header be customized later, fail safely instead of applying the
+        // wrong palette to an unrelated layout.
+        return gMapHeader.mapLayout->primaryTileset == &gTileset_General
+            && gMapHeader.mapLayout->secondaryTileset == &gTileset_FuchsiaCity
+            && DynamicOverworldWeather_IsEligibleMap();
+    default:
+        return DynamicOverworldWeather_IsEligibleMap();
+    }
+}
+
+static u8 TimeOfDay_GetDesiredState(void)
+{
+
+    // Use the 38-map lighting allowlist, distinct from the new Safari weather
+    // eligibility. Special/indoor map palettes must remain unchanged.
+    if (!TimeOfDay_IsEligibleMap())
+        return TOD_DAY;
+
+    // The Quest Log's final Saved Game scene reloads the ACTUAL saved map
+    // under a grayscale effect that also backs up its colour palettes.
+    // Select the real day/night BG source now, while the scene is still
+    // grayscale, so that backup already contains the correct night colours.
+    // Otherwise a day-coloured backup can become visible for one frame when
+    // the Quest Log releases the overworld, before our later correction.
+    // All other playback/tint modes still use the original Quest Log rules.
+    if (!(gQuestLogState == QL_STATE_PLAYBACK_LAST
+          && gGlobalFieldTintMode == QL_TINT_BACKUP_GRAYSCALE)
+        && (gGlobalFieldTintMode != QL_TINT_NONE
+            || gQuestLogState == QL_STATE_PLAYBACK
+            || gQuestLogState == QL_STATE_PLAYBACK_LAST))
+        return TOD_DAY;
+
+#if TOD_DEBUG_FORCE_PERIOD == 1
+    return TOD_DAY;
+#elif TOD_DEBUG_FORCE_PERIOD == 2
+    return TOD_NIGHT;
+#endif
+
+    return TimeOfDay_IsNight() ? TOD_NIGHT : TOD_DAY;
+}
+
+// Field-effect grass uses its own OBJ palette; the background palette banks
+// alone cannot grade that foreground artwork. Only query the same safe state.
+bool8 TimeOfDay_IsNightForFieldEffects(void)
+{
+    // Keep the Quest Log's sprite grayscale/sepia palettes in full control.
+    // The special BACKUP_GRAYSCALE exception above is for map BG sources only.
+    if (gSaveBlock1Ptr == NULL || gSaveBlock2Ptr == NULL || gMapHeader.mapLayout == NULL
+        || gGlobalFieldTintMode != QL_TINT_NONE
+        || gQuestLogState == QL_STATE_PLAYBACK
+        || gQuestLogState == QL_STATE_PLAYBACK_LAST)
+        return FALSE;
+    return TimeOfDay_GetDesiredState() == TOD_NIGHT;
+}
+
+static const u16 *TimeOfDay_GetNightPalette(const struct Tileset *tileset)
+{
+    if (tileset == gMapHeader.mapLayout->primaryTileset)
+        return sNightGeneral;
+    if (tileset == gMapHeader.mapLayout->secondaryTileset)
+    {
+        if (tileset == &gTileset_PalletTown)
+            return sNightPalletTown;
+        if (tileset == &gTileset_ViridianCity)
+            return sNightViridianCity;
+        if (tileset == &gTileset_PewterCity)
+            return sNightPewterCity;
+        if (tileset == &gTileset_CeruleanCity)
+            return sNightCeruleanCity;
+        if (tileset == &gTileset_LavenderTown)
+            return sNightLavenderTown;
+        if (tileset == &gTileset_VermilionCity)
+            return sNightVermilionCity;
+        if (tileset == &gTileset_CeladonCity)
+            return sNightCeladonCity;
+        if (tileset == &gTileset_FuchsiaCity)
+            return sNightFuchsiaCity;
+        if (tileset == &gTileset_CinnabarIsland)
+            return sNightCinnabarIsland;
+        if (tileset == &gTileset_IndigoPlateau)
+            return sNightIndigoPlateau;
+        if (tileset == &gTileset_SaffronCity)
+            return sNightSaffronCity;
+    }
+    return NULL; // Never use a mismatched palette for an unknown tileset.
+}
+
+// Refresh only map BG sources, then let FireRed's weather system process them.
+// Used both under the black screen of our transition and when the Quest Log
+// releases palette ownership; never touch player/follower OBJ source palettes.
+static void TimeOfDay_RefreshBackgroundPalettes(void)
+{
+    u8 i;
+    sTimeOfDayPaletteRefresh = TRUE;
+    LoadMapTilesetPalettes(gMapHeader.mapLayout);
+    sTimeOfDayPaletteRefresh = FALSE;
+    // Restore the grass field-effect OBJ palette alongside BG sources.
+    // The shared grass palette must not remain bright green at night.
+    FieldEffect_RefreshTimeOfDayPalette();
+    for (i = 0; i < NUM_PALS_TOTAL; i++)
+        ApplyWeatherGammaShiftToPal(i);
+}
+
+// The final Saved Game Quest Log scene restores a backup of the palette before
+// resuming normal gameplay. Correct the BG source banks in that SAME frame,
+// before VBlank displays the overworld; do not start a second visible fade.
+void TimeOfDay_RestoreAfterQuestLog(void)
+{
+    if (gSaveBlock1Ptr == NULL || gSaveBlock2Ptr == NULL
+        || gMapHeader.mapLayout == NULL || !TimeOfDay_IsEligibleMap()
+        || gGlobalFieldTintMode != QL_TINT_NONE
+        || gQuestLogState == QL_STATE_PLAYBACK
+        || gQuestLogState == QL_STATE_PLAYBACK_LAST)
+        return;
+    sTimeOfDayTransition = 0;
+    TimeOfDay_RefreshBackgroundPalettes();
+}
+
+// Use the normal FireRed palette fade engine, never a per-VBlank tint.
+// At the 08:00/20:00 boundary, quickly fade all palettes to black, swap
+// BG source banks invisibly, and immediately fade back (about 1 second total).
+// Animation keeps running; only player input is briefly guarded so warps and
+// scripts cannot take palette ownership mid-swap. No extra black-screen wait.
+// This is not used during map load or Quest Log.
+void TimeOfDay_TryUpdateOutdoorPalette(void)
+{
+    u8 newState;
+    if (sTimeOfDayTransition == 1)
+    {
+        if (gPaletteFade.active)
+            return;
+        // We own the black frame; switch palette source banks here.
+        TimeOfDay_RefreshBackgroundPalettes();
+        if (BeginNormalPaletteFade(PALETTES_ALL, TOD_FADE_DELAY, 16, 0, RGB_BLACK))
+            sTimeOfDayTransition = 2;
+        return;
+    }
+    if (sTimeOfDayTransition == 2)
+    {
+        if (!gPaletteFade.active)
+        {
+            sTimeOfDayTransition = 0;
+            ScriptContext2_Disable();
+        }
+        return;
+    }
+    if (gSaveBlock1Ptr == NULL || gSaveBlock2Ptr == NULL
+        || gMapHeader.mapLayout == NULL || !TimeOfDay_IsEligibleMap()
+        || gGlobalFieldTintMode != QL_TINT_NONE
+        || gQuestLogState == QL_STATE_PLAYBACK
+        || gQuestLogState == QL_STATE_PLAYBACK_LAST
+        || gPaletteFade.active || ScriptContext1_IsScriptSetUp()
+        || ScriptContext2_IsEnabled()
+        || gWeatherPtr->palProcessingState != WEATHER_PAL_STATE_IDLE
+        // SetNextWeather() can leave weatherChangeComplete FALSE even when
+        // currWeather == nextWeather and weather palettes are already idle.
+        // Check actual weather activity instead, so a 30-minute clock boundary
+        // cannot remain blocked by a stale completion flag.
+        || gWeatherPtr->currWeather != gWeatherPtr->nextWeather)
+        return;
+
+    newState = TimeOfDay_GetDesiredState();
+    if (newState == sLastLoadedTimeOfDay)
+        return;
+    if (BeginNormalPaletteFade(PALETTES_ALL, TOD_FADE_DELAY, 0, 16, RGB_BLACK))
+    {
+        // Do not start another script or allow movement until fade-in ends.
+        ScriptContext2_Enable();
+        sTimeOfDayTransition = 1;
+    }
+}
+
 static void LoadTilesetPalette(struct Tileset const *tileset, u16 destOffset, u16 size)
 {
     u16 black = RGB_BLACK;
+    const u16 *paletteData;
 
     if (tileset)
     {
+        paletteData = tileset->palettes;
+        // Select existing night source palettes only on eligible outdoor map loads.
+        if (TimeOfDay_GetDesiredState() == TOD_NIGHT)
+        {
+            const u16 *nightPalette = TimeOfDay_GetNightPalette(tileset);
+            if (nightPalette != NULL)
+                paletteData = nightPalette;
+        }
+
         if (tileset->isSecondary == FALSE)
         {
             LoadPalette(&black, destOffset, 2);
-            LoadPalette(((u16*)tileset->palettes) + 1, destOffset + 1, size - 2);
+            LoadPalette(paletteData + 1, destOffset + 1, size - 2);
             Fieldmap_ApplyGlobalTintToPaletteEntries(destOffset + 1, (size - 2) >> 1);
         }
         else if (tileset->isSecondary == TRUE)
         {
-            LoadPalette(((u16*)tileset->palettes) + (NUM_PALS_IN_PRIMARY * 16), destOffset, size);
+            LoadPalette(paletteData + (NUM_PALS_IN_PRIMARY * 16), destOffset, size);
             Fieldmap_ApplyGlobalTintToPaletteEntries(destOffset, size >> 1);
         }
         else
@@ -943,6 +1265,16 @@ void LoadMapTilesetPalettes(struct MapLayout const *mapLayout)
 {
     if (mapLayout)
     {
+        // Unknown during Quest Log grayscale/sepia playback. Restore once
+        // overworld gameplay regains palette ownership.
+        // An ordinary map load cancels a pending boundary fade. The explicit
+        // under-black palette refresh above is the only exception.
+        if (!sTimeOfDayPaletteRefresh)
+            sTimeOfDayTransition = 0;
+        sLastLoadedTimeOfDay = (gGlobalFieldTintMode != QL_TINT_NONE
+            || gQuestLogState == QL_STATE_PLAYBACK
+            || gQuestLogState == QL_STATE_PLAYBACK_LAST)
+            ? TOD_UNINITIALIZED : TimeOfDay_GetDesiredState();
         LoadPrimaryTilesetPalette(mapLayout);
         LoadSecondaryTilesetPalette(mapLayout);
     }

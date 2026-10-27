@@ -1,0 +1,21 @@
+# FireRed Followers v0.9.0.3.18 — Night Battle Palette (candidate)
+
+## Changes
+- `src/battle_bg.c`: apply a cool, subdued night grade only to terrain BG palette banks 2–4 (0x20–0x4F), after palette decompression on both normal and staged battle terrain load paths.
+- Night eligibility comes from the existing `TimeOfDay_IsNightForFieldEffects()` check, which respects 30-minute day/night gameplay timing, bed offset, outdoor map eligibility, and Quest Log protections.
+- Link battles retain original palettes. Indoor maps and daytime retain the original battle palettes.
+- Pokémon and trainer sprite OBJ palettes, battle textbox banks 0–1, and battle menu/frame bank 5 remain unchanged.
+
+## Validation
+- Static regression: `python tests/test_night_battle_palette_v0900318.py`.
+- ROM compilation and emulator visual tests **not performed** because cross-compiler/build dependencies are not present in this environment.
+- The original v0.9.0.3.17 source archive is unchanged. v0.9.0.3.18 is an **unlocked test candidate**; do not replace the baseline until tested.
+
+## Required runtime checks
+1. Daytime wild and trainer battles on outdoor eligible maps remain original.
+2. Nighttime wild and trainer battle terrain is darker/cooler; Pokémon sprites, UI, text, and HP bars retain their original colours.
+3. Battles on indoor maps and link battles remain original.
+4. Test transitions over each 30-minute boundary, including sleep-at-bed reset, entering/exiting battle, Safari Zone, and Quest Log playback/recovery.
+5. Check fade-to/from battle and terrain refresh for flashing or palette bank regressions.
+
+Night grading coefficients are a preliminary battle-specific treatment (R 18/31, G 23/31, B 27/31), **not byte-for-byte reused overworld palette artwork**. Adjust only after in-game screenshots are checked.

@@ -10,6 +10,7 @@
 #include "field_control_avatar.h"
 #include "field_fadetransition.h"
 #include "field_player_avatar.h"
+#include "following_pokemon.h"
 #include "field_poison.h"
 #include "field_specials.h"
 #include "item_menu.h"
@@ -452,6 +453,11 @@ static const u8 *GetInteractedObjectEventScript(struct MapPosition *position, u8
     gSelectedObjectEvent = objectEventId;
     gSpecialVar_LastTalked = gObjectEvents[objectEventId].localId;
     gSpecialVar_Facing = direction;
+
+    // The follower is spawned at runtime and has no map object template.
+    // Intercept it BEFORE the template lookup, which would dereference NULL.
+    if (gObjectEvents[objectEventId].localId == FOLLOWER_LOCAL_ID)
+        return EventScript_FollowerTalk;
 
     script = GetObjectEventScriptPointerByObjectEventId(objectEventId);
 

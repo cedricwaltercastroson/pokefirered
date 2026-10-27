@@ -10,6 +10,7 @@
 extern const u8 gUnknown_0823B4E8[];
 extern const u8 gUnknown_0823B5E9[];
 extern const u8 EventScript_275BB7[];
+extern const u8 EventScript_FollowerTalk[];
 extern const u8 EventScript_275D0C[];
 extern const u8 EventScript_275D1F[];
 extern const u8 EventScript_275D2E[];

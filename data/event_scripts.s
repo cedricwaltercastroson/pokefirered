@@ -1118,6 +1118,7 @@ Text_TestMsg:: @ 81ACD45
 	.include "data/text/trainers.inc"
 	.include "data/scripts/move_tutors.inc"
 	.include "data/scripts/test.inc"
+	.include "data/scripts/follower_interaction.inc"
 	.include "data/text/save.inc"
 	.include "data/text/new_game_intro.inc"
 	.include "data/text/pokedude.inc"

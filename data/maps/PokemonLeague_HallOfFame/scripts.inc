@@ -32,6 +32,10 @@ PokemonLeague_HallOfFame_EventScript_EnterRoom:: @ 8162D70
 	applymovement OBJ_EVENT_ID_PLAYER, Movement_WalkInPlaceFastestUp
 	waitmovement 0
 	delay 20
+	@ Recall after the walk and Oak's congratulations, just before the
+	@ Pokeball is placed into the Hall of Fame recording machine.
+	special Follower_BeginHallOfFameRecall
+	delay 8
 	dofieldeffect FLDEFF_HALL_OF_FAME_RECORD
 	waitfieldeffect FLDEFF_HALL_OF_FAME_RECORD
 	delay 40

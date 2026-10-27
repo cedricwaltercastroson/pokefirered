@@ -4,6 +4,7 @@
 #include "berry_pouch.h"
 #include "berry_powder.h"
 #include "bike.h"
+#include "following_pokemon.h"
 #include "coins.h"
 #include "event_data.h"
 #include "field_effect.h"
@@ -279,6 +280,9 @@ static void ItemUseOnFieldCB_Bicycle(u8 taskId)
     GetOnOffBike(PLAYER_AVATAR_FLAG_MACH_BIKE | PLAYER_AVATAR_FLAG_ACRO_BIKE);
     ClearPlayerHeldMovementAndUnfreezeObjectEvents();
     ScriptContext2_Disable();
+    // On foot: release the follower's bike transition latch immediately.
+    // No-op when the player just mounted the bicycle.
+    Follower_AfterBicycleDismount();
     DestroyTask(taskId);
 }
 

@@ -19,6 +19,11 @@ EventScript_PkmnCenterNurse_HealPkmn:: @ 81A65B8
 	end
 
 EventScript_PkmnCenterNurse_TakeAndHealPkmn:: @ 81A65CE
+	@ Emerald recalls its follower before Nurse Joy's healing effect.
+	@ Only delay if a visible Pokemon was actually recalled.
+	specialvar VAR_RESULT, Follower_BeginHealingRecall
+	compare VAR_RESULT, TRUE
+	call_if_eq EventScript_PkmnCenterNurse_FollowerRecallDelay
 	applymovement VAR_LAST_TALKED, Movement_WalkInPlaceFastestLeft
 	waitmovement 0
 	dofieldeffect FLDEFF_POKECENTER_HEAL
@@ -26,6 +31,11 @@ EventScript_PkmnCenterNurse_TakeAndHealPkmn:: @ 81A65CE
 	applymovement VAR_LAST_TALKED, Movement_WalkInPlaceFastestDown
 	waitmovement 0
 	special HealPlayerParty
+	special Follower_EndHealingRecall
+	return
+
+EventScript_PkmnCenterNurse_FollowerRecallDelay::
+	delay 21
 	return
 
 EventScript_PkmnCenterNurse_CheckTrainerTowerAndUnionRoom:: @ 81A65EC

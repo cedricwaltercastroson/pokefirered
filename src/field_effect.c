@@ -7,9 +7,11 @@
 #include "field_control_avatar.h"
 #include "field_effect.h"
 #include "field_effect_helpers.h"
+#include "fieldmap.h"
 #include "field_effect_scripts.h"
 #include "field_fadetransition.h"
 #include "field_player_avatar.h"
+#include "following_pokemon.h"
 #include "field_weather.h"
 #include "fieldmap.h"
 #include "help_system.h"
@@ -444,6 +446,47 @@ void ApplyGlobalFieldPaletteTint(u8 paletteIdx)
     CpuFastCopy(&gPlttBufferUnfaded[(paletteIdx + 16) * 16], &gPlttBufferFaded[(paletteIdx + 16) * 16], 0x20);
 }
 
+// Preserve the approved night BG palettes, and grade only the shared
+// tall-grass/long-grass foreground sprite palette. All other OBJ palettes
+// (player, Pokemon follower, NPCs) remain untouched.
+extern const u16 gFieldEffectObjectPalette1[];
+
+static const u16 sNightGeneralFieldEffect1Palette[16] =
+{
+    RGB(31, 0, 29), // Transparent index from original palette.
+    RGB(17, 21, 24), // Grass moonlit highlight: violet-slate.
+    RGB(11, 16, 20),
+    RGB( 7, 11, 15),
+    RGB( 4,  8, 11),
+    RGB( 3,  6,  9),
+    RGB(11, 15, 21), // Other shared ripples/splashes stay blue.
+    RGB(10, 13, 18),
+    RGB(14, 18, 24),
+    RGB(19, 21, 27),
+    RGB( 0,  0,  0),
+    RGB( 0,  0,  0),
+    RGB(15, 20, 23),
+    RGB(10, 16, 19),
+    RGB( 7, 13, 17),
+    RGB( 5, 10, 14),
+};
+
+void FieldEffect_RefreshTimeOfDayPalette(void)
+{
+    u8 slot = IndexOfSpritePaletteTag(FLDEFF_PAL_TAG_GENERAL_1);
+    const u16 *palette;
+
+    // This tag is allocated lazily: do not allocate an OBJ palette or
+    // overwrite an unrelated slot just to refresh the time of day.
+    if (slot == 0xFF)
+        return;
+
+    palette = TimeOfDay_IsNightForFieldEffects()
+        ? sNightGeneralFieldEffect1Palette : gFieldEffectObjectPalette1;
+    LoadPalette(palette, (16 + slot) * 16, 16 * sizeof(u16));
+    UpdateSpritePaletteWithWeather(slot);
+}
+
 static void FieldEffectScript_LoadFadedPal(const u8 **script)
 {
     const struct SpritePalette * spritePalette = (const struct SpritePalette * )FieldEffectScript_ReadWord(script);
@@ -451,6 +494,15 @@ static void FieldEffectScript_LoadFadedPal(const u8 **script)
     LoadSpritePalette(spritePalette);
     if (idx == 0xFF)
         ApplyGlobalFieldPaletteTint(IndexOfSpritePaletteTag(spritePalette->tag));
+    // At night, tall-grass foreground uses a moonlit OBJ palette instead of
+    // its original bright-green daytime colours. Do not modify Quest Log tint.
+    if (spritePalette->tag == FLDEFF_PAL_TAG_GENERAL_1
+        && TimeOfDay_IsNightForFieldEffects())
+    {
+        u8 grassSlot = IndexOfSpritePaletteTag(spritePalette->tag);
+        if (grassSlot != 0xFF)
+            LoadPalette(sNightGeneralFieldEffect1Palette, (16 + grassSlot) * 16, 16 * sizeof(u16));
+    }
     UpdateSpritePaletteWithWeather(IndexOfSpritePaletteTag(spritePalette->tag));
     *script += sizeof(u32);
 }
@@ -2027,6 +2079,7 @@ static void (*const gEscapeRopeFieldEffectFuncs[])(struct Task * task) = {
 
 void StartEscapeRopeFieldEffect(void)
 {
+    Follower_BeginFieldTravelRecall();
     ScriptContext2_Enable();
     FreezeObjectEvents();
     CreateTask(Task_DoEscapeRopeFieldEffect, 80);
@@ -2233,6 +2286,7 @@ static void EscapeRopeExitFieldEffect_Step1(struct Task * task)
         playerObj->fixedPriority = FALSE;
         ScriptContext2_Disable();
         UnfreezeObjectEvents();
+        Follower_EndFieldTravelRecall();
         DestroyTask(FindTaskIdByFunc(Task_DoEscapeRopeExitFieldEffect));
     }
 }
@@ -2257,6 +2311,7 @@ static void (*const sTeleportEffectFuncs[])(struct Task * ) = {
 
 void CreateTeleportFieldEffectTask(void)
 {
+    Follower_BeginFieldTravelRecall();
     CreateTask(Task_DoTeleportFieldEffect, 0);
 }
 
@@ -2438,6 +2493,7 @@ static void TeleportInFieldEffectTask3(struct Task * task)
             ScriptContext2_Disable();
             CameraObjectReset1();
             UnfreezeObjectEvents();
+            Follower_EndFieldTravelRecall();
             DestroyTask(FindTaskIdByFunc(Task_DoTeleportInFieldEffect));
         }
     }
@@ -3130,6 +3186,8 @@ static void UseFlyEffect_1(struct Task * task)
     if (!ObjectEventIsMovementOverridden(objectEvent) || ObjectEventClearHeldMovementIfFinished(objectEvent))
     {
         task->data[15] = gPlayerAvatar.flags;
+        // Fly briefly uses ON_FOOT before takeoff; recall while still visible.
+        Follower_BeginFlyRecall();
         gPlayerAvatar.preventStep = TRUE;
         SetPlayerAvatarStateMask(PLAYER_AVATAR_FLAG_ON_FOOT);
         StartPlayerAvatarSummonMonForFieldMoveAnim();

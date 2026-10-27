@@ -4,6 +4,7 @@
 #include "battle_bg.h"
 #include "battle_message.h"
 #include "decompress.h"
+#include "fieldmap.h"
 #include "graphics.h"
 #include "link.h"
 #include "new_menu_helpers.h"
@@ -615,6 +616,37 @@ static u8 GetBattleTerrainByMapScene(u8 mapBattleScene)
     return BATTLE_TERRAIN_PLAIN;
 }
 
+// v0.9.0.3.18: Keep nighttime battle terrain synchronized with the
+// approved outdoor-only day/night clock. Battle scenery has its own palette
+// assets, so grade those colours without touching Pokemon OBJ palettes.
+// Terrain occupies BG palette banks 2-4; BG bank 5 contains window/frame
+// colours that LoadBattleMenuWindowGfx subsequently configures.
+static void TimeOfDay_ApplyNightBattleTerrainPalette(void)
+{
+    u16 i;
+
+    // Link battles keep the original shared battlefield presentation.
+    if ((gBattleTypeFlags & BATTLE_TYPE_LINK) || !TimeOfDay_IsNightForFieldEffects())
+        return;
+
+    for (i = 0x20; i < 0x50; i++)
+    {
+        u16 colour = gPlttBufferUnfaded[i];
+        u16 red = colour & 31;
+        u16 green = (colour >> 5) & 31;
+        u16 blue = (colour >> 10) & 31;
+
+        // Retain relative shading, deepen warm channels and preserve
+        // cooler highlights; pure black remains black. Integer-only on GBA.
+        red = red * 18 / 31;
+        green = green * 23 / 31;
+        blue = blue * 27 / 31;
+        colour = red | (green << 5) | (blue << 10);
+        gPlttBufferUnfaded[i] = colour;
+        gPlttBufferFaded[i] = colour;
+    }
+}
+
 static void LoadBattleTerrainGfx(u16 terrain)
 {
     if (terrain >= NELEMS(sBattleTerrainTable))
@@ -623,6 +655,7 @@ static void LoadBattleTerrainGfx(u16 terrain)
     LZDecompressVram(sBattleTerrainTable[terrain].tileset, (void *)BG_CHAR_ADDR(2));
     LZDecompressVram(sBattleTerrainTable[terrain].tilemap, (void *)BG_SCREEN_ADDR(26));
     LoadCompressedPalette(sBattleTerrainTable[terrain].palette, 0x20, 0x60);
+    TimeOfDay_ApplyNightBattleTerrainPalette();
 }
 
 static void LoadBattleTerrainEntryGfx(u16 terrain)
@@ -1069,6 +1102,7 @@ bool8 LoadChosenBattleElement(u8 caseId)
     case 5:
         battleScene = GetBattleTerrainOverride();
         LoadCompressedPalette(sBattleTerrainTable[battleScene].palette, 0x20, 0x60);
+        TimeOfDay_ApplyNightBattleTerrainPalette();
         break;
     case 6:
         LoadBattleMenuWindowGfx();

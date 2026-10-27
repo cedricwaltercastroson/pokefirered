@@ -9,6 +9,7 @@
 #include "field_effect.h"
 #include "field_effect_helpers.h"
 #include "field_player_avatar.h"
+#include "following_pokemon.h"
 #include "help_system.h"
 #include "metatile_behavior.h"
 #include "new_menu_helpers.h"
@@ -126,6 +127,7 @@ static u8 TeleportAnim_RotatePlayer(struct ObjectEvent * object, s16 *timer);
 void MovementType_Player(struct Sprite *sprite)
 {
     UpdateObjectEventCurrentMovement(&gObjectEvents[sprite->data[0]], sprite, ObjectEventCB2_NoMovement2);
+    Follower_Update(&gObjectEvents[sprite->data[0]]);
 }
 
 static u8 ObjectEventCB2_NoMovement2(struct ObjectEvent * object, struct Sprite * sprite)
@@ -1636,6 +1638,9 @@ static void Task_WaitStopSurfing(u8 taskId)
         DestroySprite(&gSprites[playerObjEvent->fieldEffectSpriteId]);
         DestroyTask(taskId);
         SetHelpContextForMap();
+        // The follower may only return after the shore-jump TASK, not when
+        // FireRed prematurely clears the SURFING avatar flag.
+        Follower_AfterSurfDismount();
     }
 }
 

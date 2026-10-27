@@ -2,6 +2,7 @@
 #include "quest_log.h"
 #include "fieldmap.h"
 #include "field_player_avatar.h"
+#include "following_pokemon.h"
 #include "metatile_behavior.h"
 
 void SetQuestLogObjectEventsData(struct QuestLog * questLog)
@@ -10,6 +11,15 @@ void SetQuestLogObjectEventsData(struct QuestLog * questLog)
 
     for (i = 0; i < OBJECT_EVENTS_COUNT; i++)
     {
+        // A follower is dynamically spawned and has no map-event template.
+        // Never persist its slot as an NPC in a Quest Log recording.
+        if (gObjectEvents[i].active && !gObjectEvents[i].isPlayer
+         && gObjectEvents[i].localId == FOLLOWER_LOCAL_ID
+         && gObjectEvents[i].graphicsId == OBJ_EVENT_GFX_FOLLOWER)
+        {
+            questLog->unk_008[i].active = FALSE;
+            continue;
+        }
         questLog->unk_008[i].active = gObjectEvents[i].active;
         questLog->unk_008[i].triggerGroundEffectsOnStop = gObjectEvents[i].triggerGroundEffectsOnStop;
         questLog->unk_008[i].disableCoveringGroundEffects = gObjectEvents[i].disableCoveringGroundEffects;
@@ -54,6 +64,12 @@ void SetSav1ObjectEventsFromQuestLog(const struct QuestLog * questLog, const str
 
     for (i = 0; i < OBJECT_EVENTS_COUNT; i++)
     {
+        // Ignore any dynamic followers captured by older ROM versions.
+        // The live follow system creates its own object during playback.
+        if (questLogObjectEvents[i].active && !questLogObjectEvents[i].isPlayer
+         && questLogObjectEvents[i].localId == FOLLOWER_LOCAL_ID
+         && questLogObjectEvents[i].graphicsId == OBJ_EVENT_GFX_FOLLOWER)
+            continue;
         gObjectEvents[i].active = questLogObjectEvents[i].active;
         gObjectEvents[i].triggerGroundEffectsOnStop = questLogObjectEvents[i].triggerGroundEffectsOnStop;
         gObjectEvents[i].disableCoveringGroundEffects = questLogObjectEvents[i].disableCoveringGroundEffects;

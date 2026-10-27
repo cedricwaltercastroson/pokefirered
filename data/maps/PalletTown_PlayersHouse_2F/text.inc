@@ -8,3 +8,6 @@ PalletTown_PlayersHouse_2F_Text_PressLRForHelp:: @ 818D53B
     .string "If you're confused, ask for HELP!\n"
     .string "Press the L or R Button!$"
 
+
+PalletTown_PlayersHouse_2F_Text_WouldYouLikeToRest::
+    .string "Would you like to rest?$"

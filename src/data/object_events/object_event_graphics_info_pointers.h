@@ -305,4 +305,7 @@ const struct ObjectEventGraphicsInfo *const gObjectEventGraphicsInfoPointers[NUM
     [OBJ_EVENT_GFX_DEOXYS_A]                 = &gObjectEventGraphicsInfo_DeoxysA,
     [OBJ_EVENT_GFX_DEOXYS_N]                 = &gObjectEventGraphicsInfo_DeoxysN,
     [OBJ_EVENT_GFX_SS_ANNE]                  = &gObjectEventGraphicsInfo_SSAnne,
+    // Defensive fallback for direct table users; GetObjectEventGraphicsInfo()
+    // resolves this dynamic slot to Follower_GetGraphicsInfo().
+    [152]                                   = &gObjectEventGraphicsInfo_LittleBoy,
 };

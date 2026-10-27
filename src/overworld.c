@@ -12,6 +12,7 @@
 #include "field_fadetransition.h"
 #include "field_message_box.h"
 #include "field_player_avatar.h"
+#include "following_pokemon.h"
 #include "field_screen_effect.h"
 #include "field_specials.h"
 #include "field_tasks.h"
@@ -750,9 +751,12 @@ void LoadMapFromCameraTransition(u8 mapGroup, u8 mapNum)
 {
     int paletteIndex;
 
+    // Preserve the dynamic follower across connected outdoor maps.
+    Follower_BeginMapConnectionTransition();
     SetWarpDestination(mapGroup, mapNum, -1, -1, -1);
     Overworld_TryMapConnectionMusicTransition();
     ApplyCurrentWarp();
+    Follower_FinishMapConnectionTransition();
     LoadCurrentMapData();
     LoadObjEventTemplatesFromHeader();
     TrySetMapSaveWarpStatus();
@@ -776,6 +780,7 @@ void LoadMapFromCameraTransition(u8 mapGroup, u8 mapNum)
     RoamerMove();
     sub_8110920();
     DoCurrentWeather();
+    Follower_RefreshPalette();
     ResetFieldTasksArgs();
     RunOnResumeMapScript();
     if (GetLastUsedWarpMapSectionId() != gMapHeader.regionMapSectionId)
@@ -1454,7 +1459,12 @@ void CB1_Overworld(void)
         if (sub_8112CAC() == 1 || gQuestLogState == QL_STATE_PLAYBACK)
             DoCB1_Overworld_QuestLogPlayback();
         else
+        {
+            // Handle a time boundary only in free overworld control.
+            // Quest Log playback takes its separate branch above.
+            TimeOfDay_TryUpdateOutdoorPalette();
             DoCB1_Overworld(gMain.newKeys, gMain.heldKeys);
+        }
     }
 }
 
@@ -1517,6 +1527,9 @@ static bool8 map_post_load_hook_exec(void)
         gFieldCallback = NULL;
     }
 
+    // Field callbacks run before the first visible overworld frame. Prime the
+    // dynamic follower here so it does not pop into existence after battle.
+    Follower_PrimeForOverworldDisplay();
     return TRUE;
 }
 

@@ -2,6 +2,7 @@
 #include "task.h"
 #include "util.h"
 #include "event_object_movement.h"
+#include "following_pokemon.h"
 #include "constants/event_objects.h"
 #include "constants/event_object_movement.h"
 
@@ -20,12 +21,18 @@ static void ScriptMovement_TakeStep(u8 taskId, u8 moveScrId, u8 objEventId, cons
 bool8 ScriptMovement_StartObjectMovementScript(u8 localId, u8 mapNum, u8 mapGroup, const u8 *movementScript)
 {
     u8 objEventId;
+    bool8 failed;
     if (TryGetObjectEventIdByLocalIdAndMap(localId, mapNum, mapGroup, &objEventId))
         return TRUE;
 
     if (!FuncIsActiveTask(ScriptMovement_MoveObjects))
         ScriptMovement_StartMoveObjects(50);
-    return ScriptMovement_TryAddNewMovement(GetMoveObjectsTaskId(), objEventId, movementScript);
+    failed = ScriptMovement_TryAddNewMovement(GetMoveObjectsTaskId(), objEventId, movementScript);
+    // Do not recall during an NPC-only movement script or if a second
+    // applymovement command failed to register a movement for the player.
+    if (!failed && gObjectEvents[objEventId].isPlayer)
+        Follower_BeginScriptedPlayerMovement();
+    return failed;
 }
 
 bool8 ScriptMovement_IsObjectMovementFinished(u8 localId, u8 mapNum, u8 mapGroup)
@@ -50,6 +57,9 @@ void ScriptMovement_UnfreezeObjectEvents(void)
         ScriptMovement_UnfreezeActiveObjects(taskId);
         DestroyTask(taskId);
     }
+    // Also called on release/releaseall. A normal conversation never enters
+    // the scripted-player state, so this does not affect follower dialogue.
+    Follower_EndScriptedPlayerMovement();
 }
 
 void ScriptMovement_StartMoveObjects(u8 priority)

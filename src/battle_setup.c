@@ -20,6 +20,7 @@
 #include "fieldmap.h"
 #include "field_control_avatar.h"
 #include "field_player_avatar.h"
+#include "following_pokemon.h"
 #include "field_screen_effect.h"
 #include "field_message_box.h"
 #include "vs_seeker.h"
@@ -414,6 +415,7 @@ static void CB2_EndWildBattle(void)
     }
     else
     {
+        Follower_NotifyBattleReturn();
         SetMainCallback2(CB2_ReturnToField);
         RefillMovesPlayerParty();
         gFieldCallback = FieldCB_SafariZoneRanOutOfBalls;
@@ -910,6 +912,7 @@ static void CB2_EndTrainerBattle(void)
                 SetMainCallback2(CB2_WhiteOut);
                 return;
             }
+            Follower_NotifyBattleReturn();
             SetMainCallback2(CB2_ReturnToFieldContinueScriptPlayMapMusic);
             SetBattledTrainerFlag();
             QuestLogEvents_HandleEndTrainerBattle();
@@ -917,6 +920,7 @@ static void CB2_EndTrainerBattle(void)
         else
         {
             gSpecialVar_Result = FALSE;
+            Follower_NotifyBattleReturn();
             SetMainCallback2(CB2_ReturnToFieldContinueScriptPlayMapMusic);
             RefillMovesPlayerParty();
             SetBattledTrainerFlag();
@@ -928,6 +932,7 @@ static void CB2_EndTrainerBattle(void)
     {
         if (gTrainerBattleOpponent_A == TRAINER_SECRET_BASE)
         {
+            Follower_NotifyBattleReturn();
             SetMainCallback2(CB2_ReturnToFieldContinueScriptPlayMapMusic);
             RefillMovesPlayerParty();
         }
@@ -937,6 +942,7 @@ static void CB2_EndTrainerBattle(void)
         }
         else
         {
+            Follower_NotifyBattleReturn();
             SetMainCallback2(CB2_ReturnToFieldContinueScriptPlayMapMusic);
             RefillMovesPlayerParty();
             SetBattledTrainerFlag();
@@ -949,6 +955,7 @@ static void CB2_EndRematchBattle(void)
 {
     if (gTrainerBattleOpponent_A == TRAINER_SECRET_BASE)
     {
+        Follower_NotifyBattleReturn();
         SetMainCallback2(CB2_ReturnToFieldContinueScriptPlayMapMusic);
         RefillMovesPlayerParty();
     }
@@ -958,6 +965,7 @@ static void CB2_EndRematchBattle(void)
     }
     else
     {
+        Follower_NotifyBattleReturn();
         SetMainCallback2(CB2_ReturnToFieldContinueScriptPlayMapMusic);
         RefillMovesPlayerParty();
         SetBattledTrainerFlag();

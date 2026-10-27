@@ -9,6 +9,7 @@
 #include "overworld.h"
 #include "field_fadetransition.h"
 #include "field_weather.h"
+#include "fieldmap.h"
 #include "event_object_movement.h"
 #include "event_object_lock.h"
 #include "field_player_avatar.h"
@@ -21,6 +22,7 @@
 #include "save.h"
 #include "quest_log_objects.h"
 #include "quest_log_player.h"
+#include "following_pokemon.h"
 #include "quest_log.h"
 #include "new_menu_helpers.h"
 #include "strings.h"
@@ -1182,6 +1184,10 @@ static void Task_EndQuestLog(u8 taskId)
         ScriptContext2_Disable();
         gTextFlags.autoScroll = FALSE;
         gGlobalFieldTintMode = QL_TINT_NONE;
+        // The Quest Log restored its saved colours, which may be daylight even
+        // when the loaded save is now at night. Replace eligible BG palettes
+        // before this frame reaches VBlank; no daylight flash or catch-up fade.
+        TimeOfDay_RestoreAfterQuestLog();
         DisableWildEncounters(FALSE);
         gHelpSystemEnabled = TRUE;
         DestroyTask(taskId);
@@ -1298,9 +1304,22 @@ void sub_811246C(struct Sprite *sprite)
             sMovementScripts[0][1] = 0xFF;
         }
         sub_8063E28(objectEvent, sprite);
+        // Quest Log substitutes its own player sprite callback for
+        // MovementType_Player. Keep the live follower updated as the
+        // recorded player steps are animated, not only on the first frame.
+        Follower_Update(objectEvent);
     }
     else
     {
+        // Followers are dynamic objects (local ID 0xFE), not members of
+        // the Quest Log's 64-entry NPC movement-script table. A follower
+        // created by an older callback path must never index that table.
+        if (objectEvent->localId == FOLLOWER_LOCAL_ID
+         && objectEvent->graphicsId == OBJ_EVENT_GFX_FOLLOWER)
+        {
+            sub_8063E28(objectEvent, sprite);
+            return;
+        }
         if (sMovementScripts[objectEvent->localId][0] != 0xFF)
         {
             ObjectEventSetHeldMovement(objectEvent, sMovementScripts[objectEvent->localId][0]);

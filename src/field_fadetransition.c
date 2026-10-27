@@ -6,6 +6,7 @@
 #include "field_weather.h"
 #include "map_preview_screen.h"
 #include "field_player_avatar.h"
+#include "following_pokemon.h"
 #include "task.h"
 #include "script.h"
 #include "cable_club.h"
@@ -24,6 +25,8 @@
 #include "constants/event_object_movement.h"
 #include "constants/event_objects.h"
 #include "constants/field_weather.h"
+#include "constants/map_types.h"
+#include "constants/region_map_sections.h"
 
 static void sub_807DF4C(u8 a0);
 static void sub_807DFBC(u8 taskId);
@@ -393,6 +396,7 @@ static void sub_807DFBC(u8 taskId)
     case 4:
         UnfreezeObjectEvents();
         ScriptContext2_Disable();
+        Follower_EndBuildingExitWarp();
         DestroyTask(taskId);
         break;
     }
@@ -429,6 +433,7 @@ static void task_map_chg_seq_0807E20C(u8 taskId)
     case 3:
         UnfreezeObjectEvents();
         ScriptContext2_Disable();
+        Follower_EndBuildingExitWarp();
         DestroyTask(taskId);
         break;
     }
@@ -448,6 +453,8 @@ static void task_map_chg_seq_0807E2CC(u8 taskId)
         {
             UnfreezeObjectEvents();
             ScriptContext2_Disable();
+            Follower_EndBuildingExitWarp();
+            Follower_EndStairWarp();
             DestroyTask(taskId);
         }
         break;
@@ -469,6 +476,9 @@ static void Task_TeleportWarpIn(u8 taskId)
         {
             UnfreezeObjectEvents();
             ScriptContext2_Disable();
+            // Sabrina's Gym pad transition has fully finished; only now may
+            // the follower reappear on a safe tile behind the player.
+            Follower_EndWarpPadRecall();
             DestroyTask(taskId);
         }
         break;
@@ -528,8 +538,35 @@ bool32 FieldFadeTransitionBackgroundEffectIsFinished(void)
         return FALSE;
 }
 
+// Only real outdoor town/route warps retain FireRed's normal immediate
+// overworld presentation. Any transition touching a cave/dungeon/interior
+// must wait for the first safe voluntary player step before follower spawn.
+static bool8 Follower_IsOverworldMapType(u8 mapType)
+{
+    return mapType == MAP_TYPE_TOWN || mapType == MAP_TYPE_CITY
+        || mapType == MAP_TYPE_ROUTE || mapType == MAP_TYPE_OCEAN_ROUTE;
+}
+
 void DoWarp(void)
 {
+    const struct MapHeader *destination = GetDestinationWarpMapHeader();
+    // Animated/south-facing building exits need an explicit destination-task
+    // completion callback so the automatic step never releases the follower.
+    if (GetCurrentMapType() == MAP_TYPE_INDOOR
+     && Follower_IsOverworldMapType(destination->mapType))
+        Follower_BeginBuildingExitWarp();
+    else if (!Follower_IsOverworldMapType(GetCurrentMapType())
+          || !Follower_IsOverworldMapType(destination->mapType))
+        // Cave entrances/exits, dungeons and indoor-to-indoor warps all use
+        // Safari's proven rear-only vacated-tile release; no side/front fallback.
+        Follower_BeginRearOnlyWarp();
+    else if (gMapHeader.regionMapSectionId == MAPSEC_KANTO_SAFARI_ZONE
+          && gMapHeader.mapType == MAP_TYPE_ROUTE
+          && GetDestinationWarpMapHeader()->regionMapSectionId == MAPSEC_KANTO_SAFARI_ZONE
+          && destination->mapType == MAP_TYPE_ROUTE)
+        // Preserve the special Safari outdoor-to-outdoor boundary exception.
+        Follower_BeginSafariZoneWarp();
+    // Every OTHER outdoor-to-outdoor warp retains established overworld logic.
     ScriptContext2_Enable();
     TryFadeOutOldMapMusic();
     WarpFadeOutScreen();
@@ -541,6 +578,11 @@ void DoWarp(void)
 
 void DoDiveWarp(void)
 {
+    // Fall/dive-style cave warps bypass DoWarp. They must obey the same
+    // non-overworld rear-only release policy without changing outdoor warps.
+    if (!Follower_IsOverworldMapType(GetCurrentMapType())
+     || !Follower_IsOverworldMapType(GetDestinationWarpMapHeader()->mapType))
+        Follower_BeginRearOnlyWarp();
     ScriptContext2_Enable();
     TryFadeOutOldMapMusic();
     WarpFadeOutScreen();
@@ -551,7 +593,9 @@ void DoDiveWarp(void)
 
 void DoStairWarp(u16 metatileBehavior, u16 delay)
 {
-    u8 taskId = CreateTask(Task_StairWarp, 10);
+    u8 taskId;
+    Follower_BeginStairWarp();
+    taskId = CreateTask(Task_StairWarp, 10);
     gTasks[taskId].data[1] = metatileBehavior;
     gTasks[taskId].data[15] = delay;
     Task_StairWarp(taskId);
@@ -559,6 +603,9 @@ void DoStairWarp(u16 metatileBehavior, u16 delay)
 
 void DoDoorWarp(void)
 {
+    // Animated door entrance: keep the follower visible as the player walks in.
+    // Task_DoorWarp owns its final recall when the player has finished that
+    // entry step; destination-map exit positioning remains unchanged.
     ScriptContext2_Enable();
     gFieldCallback = FieldCB_DefaultWarpExit;
     CreateTask(Task_DoorWarp, 10);
@@ -604,6 +651,9 @@ void DoLavaridgeGym1FWarp(void)
 
 void DoTeleportWarp(void)
 {
+    // Recall before the departure spin/fade; keep hidden even for same-map
+    // destination pads until Task_TeleportWarpIn releases field control.
+    Follower_BeginWarpPadRecall();
     ScriptContext2_Enable();
     TryFadeOutOldMapMusic();
     CreateTask(Task_TeleportWarp, 10);
@@ -753,6 +803,15 @@ static void Task_DoorWarp(u8 taskId)
     case 1:
         if (task->data[1] < 0 || gTasks[task->data[1]].isActive != TRUE)
         {
+            u8 followerId;
+            // FreezeObjectEvents() pauses the follower with all other NPCs.
+            // Release only our follower for the player's final walk into
+            // the doorway, so the normal movement trail can follow it.
+            if (!TryGetObjectEventIdByLocalIdAndMap(FOLLOWER_LOCAL_ID,
+                                                    gSaveBlock1Ptr->location.mapNum,
+                                                    gSaveBlock1Ptr->location.mapGroup,
+                                                    &followerId))
+                UnfreezeObjectEvent(&gObjectEvents[followerId]);
             ObjectEventClearHeldMovementIfActive(&gObjectEvents[GetObjectEventIdByLocalIdAndMap(OBJ_EVENT_ID_PLAYER, 0, 0)]);
             ObjectEventSetHeldMovement(&gObjectEvents[GetObjectEventIdByLocalIdAndMap(OBJ_EVENT_ID_PLAYER, 0, 0)], MOVEMENT_ACTION_WALK_NORMAL_UP);
             task->data[0] = 2;
@@ -761,6 +820,22 @@ static void Task_DoorWarp(u8 taskId)
     case 2:
         if (walkrun_is_standing_still())
         {
+            u8 followerId;
+            // Let the follower FINISH the step into the doorway before
+            // hiding it. This avoids clipping its walking animation when
+            // the player's scripted entrance step completes first.
+            if (!TryGetObjectEventIdByLocalIdAndMap(FOLLOWER_LOCAL_ID,
+                                                    gSaveBlock1Ptr->location.mapNum,
+                                                    gSaveBlock1Ptr->location.mapGroup,
+                                                    &followerId)
+             && ObjectEventIsHeldMovementActive(&gObjectEvents[followerId])
+             && !gObjectEvents[followerId].heldMovementFinished)
+                break;
+            // The player has now stepped into the doorway. Recall the
+            // follower alongside player visibility, never when the door is
+            // first touched. The destination's next voluntary tile step
+            // releases the follower behind the player, not during its fade.
+            Follower_BeginRearOnlyWarp();
             task->data[1] = FieldAnimateDoorClose(*xp, *yp - 1);
             ObjectEventClearHeldMovementIfFinished(&gObjectEvents[GetObjectEventIdByLocalIdAndMap(OBJ_EVENT_ID_PLAYER, 0, 0)]);
             SetPlayerVisibility(FALSE);
@@ -902,6 +977,7 @@ static void sub_807EC34(u8 taskId)
         {
             CameraObjectReset1();
             ScriptContext2_Disable();
+            Follower_EndStairWarp();
             DestroyTask(taskId);
         }
         break;

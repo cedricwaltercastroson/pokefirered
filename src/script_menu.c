@@ -488,6 +488,15 @@ static const struct MenuAction sScriptMultiChoiceMenu_TrainerTowerMode[] = {
     { gOtherText_Exit }
 };
 
+static const u8 sText_SleepUntilDay[] = _("Sleep Until Day");
+static const u8 sText_SleepUntilNight[] = _("Sleep Until Night");
+static const u8 sText_SleepCancel[] = _("Cancel");
+static const struct MenuAction sScriptMultiChoiceMenu_SleepDayNight[] = {
+    { sText_SleepUntilDay },
+    { sText_SleepUntilNight },
+    { sText_SleepCancel }
+};
+
 static const struct MenuAction sScriptMultiChoiceMenu_Exit[] = {
     { gOtherText_Exit }
 };
@@ -557,7 +566,8 @@ const struct MultichoiceListStruct gScriptMultiChoiceMenus[] = {
     { sScriptMultiChoiceMenu_SeagallopVermilion, NELEMS(sScriptMultiChoiceMenu_SeagallopVermilion) },
     { sScriptMultiChoiceMenu_62, NELEMS(sScriptMultiChoiceMenu_62) },
     { sScriptMultiChoiceMenu_JoinOrLead, NELEMS(sScriptMultiChoiceMenu_JoinOrLead) },
-    { sScriptMultiChoiceMenu_TrainerTowerMode, NELEMS(sScriptMultiChoiceMenu_TrainerTowerMode) }
+    { sScriptMultiChoiceMenu_TrainerTowerMode, NELEMS(sScriptMultiChoiceMenu_TrainerTowerMode) },
+    { sScriptMultiChoiceMenu_SleepDayNight, NELEMS(sScriptMultiChoiceMenu_SleepDayNight) }
 };
 
 // From Cool to Berries goes unused

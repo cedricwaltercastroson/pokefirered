@@ -7,6 +7,7 @@
 #include "field_effect.h"
 #include "field_effect_helpers.h"
 #include "field_player_avatar.h"
+#include "following_pokemon.h"
 #include "fieldmap.h"
 #include "metatile_behavior.h"
 #include "overworld.h"
@@ -1231,6 +1232,7 @@ static void ClearAllObjectEvents(void)
 
 void ResetObjectEvents(void)
 {
+    Follower_ResetForMapLoad();
     ClearLinkPlayerObjectEvents();
     ClearAllObjectEvents();
     ClearPlayerAvatarInfo();
@@ -1565,6 +1567,37 @@ void RemoveObjectEventByLocalIdAndMap(u8 localId, u8 mapNum, u8 mapGroup)
     }
 }
 
+// Removes a single dynamic follower by engine object ID. The normal
+// RemoveObjectEventByLocalIdAndMap helper incorrectly uses NPC event flags.
+void RemoveFollowerObjectEventById(u8 objectEventId)
+{
+    struct ObjectEvent *objectEvent;
+    if (objectEventId >= OBJECT_EVENTS_COUNT)
+        return;
+    objectEvent = &gObjectEvents[objectEventId];
+    if (objectEvent->active && !objectEvent->isPlayer
+     && objectEvent->localId == FOLLOWER_LOCAL_ID
+     && objectEvent->graphicsId == OBJ_EVENT_GFX_FOLLOWER)
+        RemoveObjectEvent(objectEvent);
+}
+
+// Followers are dynamically spawned and have no map-event template/flag.
+// Unlike normal NPCs, a follower may retain its old map group/number when
+// crossing a seamless map connection. Remove every matching dynamic instance
+// regardless of map, including duplicates left over from earlier builds.
+void RemoveFollowerObjectEvent(void)
+{
+    u8 objectEventId;
+    for (objectEventId = 0; objectEventId < OBJECT_EVENTS_COUNT; objectEventId++)
+    {
+        struct ObjectEvent *objectEvent = &gObjectEvents[objectEventId];
+        if (objectEvent->active && !objectEvent->isPlayer
+         && objectEvent->localId == FOLLOWER_LOCAL_ID
+         && objectEvent->graphicsId == OBJ_EVENT_GFX_FOLLOWER)
+            RemoveObjectEvent(objectEvent);
+    }
+}
+
 static void RemoveObjectEventInternal(struct ObjectEvent *objectEvent)
 {
     struct SpriteFrameImage image;
@@ -1715,7 +1748,8 @@ void MakeObjectTemplateFromObjectEventGraphicsInfo(u16 graphicsId, void (*callba
     
     do
     {
-        if (ScriptContext1_IsScriptSetUp() != TRUE && sub_8112CAC() == TRUE)
+        if (graphicsId != OBJ_EVENT_GFX_FOLLOWER
+         && ScriptContext1_IsScriptSetUp() != TRUE && sub_8112CAC() == TRUE)
             spriteTemplate->callback = sub_811246C;
         else
             spriteTemplate->callback = callback;
@@ -2094,6 +2128,9 @@ const struct ObjectEventGraphicsInfo *GetObjectEventGraphicsInfo(u8 graphicsId)
     if (graphicsId >= OBJ_EVENT_GFX_VARS)
         graphicsId = VarGetObjectEventGraphicsId(graphicsId - OBJ_EVENT_GFX_VARS);
     
+    if (graphicsId == OBJ_EVENT_GFX_FOLLOWER)
+        return Follower_GetGraphicsInfo();
+
     if (graphicsId >= NUM_OBJ_EVENT_GFX)
         graphicsId = OBJ_EVENT_GFX_LITTLE_BOY;
     
@@ -2369,6 +2406,7 @@ void UpdateObjectEventCoordsForCameraUpdate(void)
                 gObjectEvents[i].previousCoords.y -= dy;
             }
         }
+        Follower_RebaseForCameraUpdate(dx, dy);
     }
 }
 
@@ -4951,7 +4989,7 @@ static bool8 DoesObjectCollideWithObjectAt(struct ObjectEvent *objectEvent, s16 
     for (i = 0; i < OBJECT_EVENTS_COUNT; i++)
     {
         curObject = &gObjectEvents[i];
-        if (curObject->active && curObject != objectEvent)
+        if (curObject->active && curObject != objectEvent && !Follower_IsCollisionExempt(objectEvent, curObject))
         {
             if ((curObject->currentCoords.x == x && curObject->currentCoords.y == y) || (curObject->previousCoords.x == x && curObject->previousCoords.y == y))
             {

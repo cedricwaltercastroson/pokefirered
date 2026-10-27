@@ -51,3 +51,41 @@ EventScript_PalletTown_PlayersHouse_2F_ShutDownPC:: @ 8168D17
 	special SetHelpContextForMap
 	releaseall
 	end
+
+@ v0.9.0.3.11: Interact with the actual upstairs bed, not an item or debug menu.
+PalletTown_PlayersHouse_2F_EventScript_Bed::
+    goto_if_questlog EventScript_ReleaseEnd
+    lockall
+    message PalletTown_PlayersHouse_2F_Text_WouldYouLikeToRest
+    waitmessage
+    multichoice 1, 1, MULTICHOICE_SLEEP_DAY_NIGHT, FALSE
+    switch VAR_RESULT
+    case 0, PalletTown_PlayersHouse_2F_EventScript_SleepDay
+    case 1, PalletTown_PlayersHouse_2F_EventScript_SleepNight
+    goto PalletTown_PlayersHouse_2F_EventScript_SleepCancel
+    end
+
+PalletTown_PlayersHouse_2F_EventScript_SleepDay::
+    setvar VAR_0x8004, 0
+    goto PalletTown_PlayersHouse_2F_EventScript_DoSleep
+    end
+
+PalletTown_PlayersHouse_2F_EventScript_SleepNight::
+    setvar VAR_0x8004, 1
+    goto PalletTown_PlayersHouse_2F_EventScript_DoSleep
+    end
+
+PalletTown_PlayersHouse_2F_EventScript_DoSleep::
+    closemessage
+    fadescreen FADE_TO_BLACK
+    playfanfare MUS_HEAL
+    waitfanfare
+    special TimeOfDay_SleepUntil
+    fadescreen FADE_FROM_BLACK
+    releaseall
+    end
+
+PalletTown_PlayersHouse_2F_EventScript_SleepCancel::
+    closemessage
+    releaseall
+    end

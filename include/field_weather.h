@@ -145,6 +145,8 @@ void WeatherBeginGammaFade(u8 gammaIndex, u8 gammaTargetIndex, u8 gammaStepDelay
 void ApplyWeatherGammaShiftToPal(u8 paletteIndex);
 void StartWeather(void);
 void ResumePausedWeather(void);
+void DynamicOverworldWeather_Update(void);
+bool8 DynamicOverworldWeather_IsEligibleMap(void);
 void FadeSelectedPals(u8 mode, s8 delay, u32 selectedPalettes);
 
 extern const u16 gCloudsWeatherPalette[];
