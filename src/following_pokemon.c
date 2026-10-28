@@ -192,8 +192,9 @@ static bool8 sBattleReturnPending;
 // The coordinates track the LAST settled player tile, not an arbitrary side
 // tile, so the follower returns on the tile the player actually vacated.
 static bool8 sBattleRecallAwaitStep;
-// Gym Leader rematches use the League's stationary rear-tile return after
-// dialogue and fade. Regular trainer battles still wait for a player step.
+// Gym Leader rematches and ordinary Double Trainer Battles use the League's
+// stationary rear-tile return after dialogue/fade. Single Trainer Battles
+// still wait for a player-controlled step.
 static bool8 sGymRematchReturnPending;
 // Ordinary wild encounters use the same settled, safe rear-tile return.
 // Scripted legendary and Safari battles keep their own existing callbacks.
@@ -697,6 +698,8 @@ static u16 Follower_GetLeadSpecies(bool8 *isShiny)
 // The follower is the first non-Egg Kanto Pokémon in the party, which is not
 // always the first battle-ready Pokémon. Record its party slot only when its
 // overworld sprite actually exists and is visible before battle transitions.
+// Double Battles can be promoted after this snapshot; the player controller
+// handles the second Pokémon separately when its normal send-out begins.
 void Follower_PrepareBattleEntry(void)
 {
     u8 objectId;
@@ -704,7 +707,7 @@ void Follower_PrepareBattleEntry(void)
     struct ObjectEvent *follower;
 
     sBattleEntryFollowerPartyIndex = 0;
-    if (gBattleTypeFlags & (BATTLE_TYPE_LINK | BATTLE_TYPE_DOUBLE | BATTLE_TYPE_MULTI
+    if (gBattleTypeFlags & (BATTLE_TYPE_LINK | BATTLE_TYPE_MULTI
                           | BATTLE_TYPE_SAFARI | BATTLE_TYPE_OLD_MAN_TUTORIAL
                           | BATTLE_TYPE_POKEDUDE | BATTLE_TYPE_BATTLE_TOWER
                           | BATTLE_TYPE_RECORDED | BATTLE_TYPE_INGAME_PARTNER))
@@ -736,7 +739,9 @@ void Follower_PrepareBattleEntry(void)
 
 bool8 Follower_TakeBattleEntrySlide(u8 partyIndex)
 {
-    bool8 eligible = (partyIndex < PARTY_SIZE && (partyIndex + 1) == sBattleEntryFollowerPartyIndex);
+    bool8 eligible = (partyIndex < PARTY_SIZE
+                   && (partyIndex + 1) == sBattleEntryFollowerPartyIndex
+                   && !(gBattleTypeFlags & (BATTLE_TYPE_LINK | BATTLE_TYPE_MULTI | BATTLE_TYPE_INGAME_PARTNER)));
     // Always consume the snapshot, including if a different Pokémon is sent.
     sBattleEntryFollowerPartyIndex = 0;
     return eligible;
@@ -1112,6 +1117,14 @@ void Follower_NotifyGymRematchReturn(void)
 {
     Follower_NotifyBattleReturn();
     sGymRematchReturnPending = TRUE;
+}
+
+// Local Double Trainer Battles share the League/Gym rematch safe rear-tile
+// return. Keep this distinct from the wild callback: ordinary Single Trainer
+// Battles must still use their existing step-controlled return.
+void Follower_NotifyDoubleTrainerBattleReturn(void)
+{
+    Follower_NotifyGymRematchReturn();
 }
 
 void Follower_NotifyWildBattleReturn(void)

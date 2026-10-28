@@ -133,7 +133,7 @@ int main(void) {
 
     gBattleTypeFlags = BATTLE_TYPE_DOUBLE;
     Follower_PrepareBattleEntry();
-    assert(Follower_TakeBattleEntrySlide(0) == FALSE);
+    assert(Follower_TakeBattleEntrySlide(0) == TRUE); // lead slides; partner uses its own Poké Ball
     gBattleTypeFlags = BATTLE_TYPE_LINK;
     Follower_PrepareBattleEntry();
     assert(Follower_TakeBattleEntrySlide(0) == FALSE);
@@ -173,4 +173,4 @@ with tempfile.TemporaryDirectory() as d:
     src.write_text(source)
     subprocess.run(['gcc','-std=gnu11','-Wall','-Wextra','-Werror','-Wno-unused-parameter',str(src),'-o',str(exe)],check=True)
     subprocess.run([str(exe)],check=True)
-print('PASS: visible matching lead only; no switch/double/link; slide 24 frames, cry once')
+print('PASS: visible matching lead only; no switch/link/multi; slide 24 frames, cry once')

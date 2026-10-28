@@ -53,8 +53,10 @@ void Follower_PrimeForOverworldDisplay(void);
 void Follower_StabilizeBattleReturnPalette(void);
 void Follower_StabilizeBattleReturnSpriteSlot(void);
 void Follower_NotifyBattleReturn(void);
-// Gym Leader rematch only: return behind the player after dialogue/fade.
+// Gym Leader rematches: return behind the player after dialogue/fade.
 void Follower_NotifyGymRematchReturn(void);
+// Ordinary local Double Trainer Battles: automatic safe post-fade return.
+void Follower_NotifyDoubleTrainerBattleReturn(void);
 // Ordinary wild battle only: safe stationary rear return after field fade.
 void Follower_NotifyWildBattleReturn(void);
 // Snapshot only a currently visible follower at the start of a field battle.

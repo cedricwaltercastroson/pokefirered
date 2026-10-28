@@ -38,6 +38,8 @@ typedef uint8_t u8;
 typedef uint16_t u16;
 #define FALSE 0
 #define MON_DATA_SPECIES 0
+#define BATTLE_TYPE_MULTI 0x40
+#define BIT_FLANK 2
 struct Sprite;
 typedef void (*SpriteCallback)(struct Sprite *);
 struct Sprite { int x2, invisible; int data[8]; struct { int paletteNum; } oam; SpriteCallback callback; };
@@ -51,10 +53,15 @@ struct Template gMultiuseSpriteTemplate;
 u8 gBattlerSpriteIds[4] = {1,0,0,0};
 u8 gBattlerPartyIndexes[4];
 u8 gBattleControllerData[4];
+u8 gBattleBufferA[4][8];
+u8 gActiveBattler;
+uint32_t gBattleTypeFlags;
 u8 gBattleMonForms[4];
 void (*gBattlerControllerFuncs[4])(void);
 static int freedTrainer, createdMon, destroyedTask, cryCount;
 static int crySpecies;
+static int IsDoubleBattle(void) { return 0; }
+static void StartSendOutAnim(u8 b, int arg) { (void)b; (void)arg; assert(0 && "no second send-out for single battle"); }
 static void SpriteCallbackDummy(struct Sprite *sprite) {(void)sprite;}
 static void Intro_WaitForFollowerBattleSlide(void) {}
 static u16 GetMonData(struct Pokemon *pokemon, int field) { assert(field == MON_DATA_SPECIES); return pokemon->species; }

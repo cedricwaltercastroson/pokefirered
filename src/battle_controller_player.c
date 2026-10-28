@@ -2782,6 +2782,26 @@ static void Task_StartFollowerBattleEntry(u8 taskId)
     // Intro_TryShinyAnimShowHealthbox destroys this sentinel just as it does
     // after the ordinary ball-release animation.
     gBattleControllerData[battlerId] = CreateInvisibleSpriteWithCallback(SpriteCallbackDummy);
+
+    // In a normal Double Battle the intro command is sent only to the left
+    // player battler. The ordinary intro task sends out BOTH partners. Keep
+    // the follower's slide for the first Pokémon, but release the second
+    // Pokémon from its Poké Ball using the original engine path. Otherwise
+    // the partner's battler sprite, ball sentinel, and HP bar never initialize.
+    if (IsDoubleBattle() && !(gBattleTypeFlags & BATTLE_TYPE_MULTI))
+    {
+        u8 partnerId = battlerId ^ BIT_FLANK;
+        u8 savedActiveBattler = gActiveBattler;
+
+        gActiveBattler = partnerId;
+        gBattleBufferA[partnerId][1] = gBattlerPartyIndexes[partnerId];
+        BattleLoadPlayerMonSpriteGfx(&gPlayerParty[gBattlerPartyIndexes[partnerId]], partnerId);
+        StartSendOutAnim(partnerId, FALSE);
+        gActiveBattler = savedActiveBattler;
+    }
+
+    // The normal shiny/healthbox stage already waits for both ball-release
+    // flags to clear, so neither battler can advance with a missing sprite.
     gBattlerControllerFuncs[battlerId] = Intro_WaitForFollowerBattleSlide;
     DestroyTask(taskId);
 }

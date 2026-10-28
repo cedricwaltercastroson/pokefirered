@@ -950,12 +950,15 @@ static void CB2_EndTrainerBattle(void)
         }
         else
         {
-            // Direct post-Champion Gym rematches use the same settled,
-            // stationary follower return as the Pokemon League. Do not
-            // alter the normal trainer / VS Seeker battle return path.
+            // Gym rematches and local Double Trainer Battles return the
+            // follower on a safe rear tile once scripts/fades settle.
+            // Ordinary Single Trainer Battles still wait for a player step.
             if (gTrainerBattleOpponent_A >= TRAINER_GYM_REMATCH_BROCK
              && gTrainerBattleOpponent_A <= TRAINER_GYM_REMATCH_GIOVANNI)
                 Follower_NotifyGymRematchReturn();
+            else if ((gBattleTypeFlags & BATTLE_TYPE_DOUBLE)
+                  && !(gBattleTypeFlags & (BATTLE_TYPE_LINK | BATTLE_TYPE_MULTI | BATTLE_TYPE_INGAME_PARTNER)))
+                Follower_NotifyDoubleTrainerBattleReturn();
             else
                 Follower_NotifyBattleReturn();
             SetMainCallback2(CB2_ReturnToFieldContinueScriptPlayMapMusic);
@@ -980,7 +983,11 @@ static void CB2_EndRematchBattle(void)
     }
     else
     {
-        Follower_NotifyBattleReturn();
+        if ((gBattleTypeFlags & BATTLE_TYPE_DOUBLE)
+         && !(gBattleTypeFlags & (BATTLE_TYPE_LINK | BATTLE_TYPE_MULTI | BATTLE_TYPE_INGAME_PARTNER)))
+            Follower_NotifyDoubleTrainerBattleReturn();
+        else
+            Follower_NotifyBattleReturn();
         SetMainCallback2(CB2_ReturnToFieldContinueScriptPlayMapMusic);
         RefillMovesPlayerParty();
         SetBattledTrainerFlag();
