@@ -29,3 +29,11 @@ To set up the repository, see [INSTALL.md](https://github.com/cedricwaltercastro
 - Nighttime colours extend to the overworld, wild battles, Trainer Battles, and Safari Zone.
 - Players can sleep in their bedroom in Pallet Town.
 - Dynamic weather includes rain and thunderstorms.
+
+<img width="715" height="480" alt="image" src="https://github.com/user-attachments/assets/ef80fe0b-c511-4643-819c-cd1a4396bc4f" />
+<img width="717" height="480" alt="image" src="https://github.com/user-attachments/assets/3f14e69b-8b2d-405f-8bc8-d8b29106b96f" />
+<img width="713" height="469" alt="image" src="https://github.com/user-attachments/assets/a4805311-e35b-4e40-a44b-f485631da61e" />
+<img width="719" height="481" alt="image" src="https://github.com/user-attachments/assets/86c0e805-51bb-466b-967e-55e76a8b9b12" />
+<img width="716" height="480" alt="image" src="https://github.com/user-attachments/assets/9172c6fe-0233-4e23-96ff-204be20e95a2" />
+<img width="714" height="478" alt="image" src="https://github.com/user-attachments/assets/3faacc2a-070e-4900-a7a1-6c27b2c6252b" />
+<img width="715" height="479" alt="image" src="https://github.com/user-attachments/assets/135873ce-c0ac-4a56-b168-a1ecca33726a" />
