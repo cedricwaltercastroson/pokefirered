@@ -290,14 +290,15 @@
 #define VAR_0x40EF                 0x40EF
 #define VAR_0x40F0                 0x40F0
 #define VAR_DAILY_BP               0x40F1
-#define VAR_0x40F2                 0x40F2
-#define VAR_0x40F3                 0x40F3
-#define VAR_0x40F4                 0x40F4
-#define VAR_0x40F5                 0x40F5
-#define VAR_0x40F6                 0x40F6
-#define VAR_0x40F7                 0x40F7
-#define VAR_0x40F8                 0x40F8
-#define VAR_0x40F9                 0x40F9
+#define VAR_GYM_REMATCH_BROCK                  0x40F2
+#define VAR_GYM_REMATCH_MISTY                  0x40F3
+#define VAR_GYM_REMATCH_LT_SURGE               0x40F4
+#define VAR_GYM_REMATCH_ERIKA                  0x40F5
+#define VAR_GYM_REMATCH_KOGA                   0x40F6
+#define VAR_GYM_REMATCH_SABRINA                0x40F7
+#define VAR_GYM_REMATCH_BLAINE                 0x40F8
+#define VAR_GYM_REMATCH_GIOVANNI               0x40F9
+
 #define VAR_0x40FA                 0x40FA
 #define VAR_0x40FB                 0x40FB
 #define VAR_0x40FC                 0x40FC

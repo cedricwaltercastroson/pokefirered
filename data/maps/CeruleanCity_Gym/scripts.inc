@@ -2,6 +2,7 @@ CeruleanCity_Gym_MapScripts:: @ 816AAA0
 	.byte 0
 
 CeruleanCity_Gym_EventScript_Misty:: @ 816AAA1
+	goto_if_set FLAG_SYS_GAME_CLEAR, CeruleanCity_Gym_EventScript_AskRematch
 	famechecker FAMECHECKER_MISTY, FCPICKSTATE_COLORED, UpdatePickStateFromSpecialVar8005
 	trainerbattle_single TRAINER_LEADER_MISTY, CeruleanCity_Gym_Text_MistyIntro, CeruleanCity_Gym_Text_MistyDefeat, CeruleanCity_Gym_EventScript_MistyDefeated, NO_MUSIC
 	goto_if_unset FLAG_GOT_TM03_FROM_MISTY, CeruleanCity_Gym_EventScript_GiveTM03
@@ -69,3 +70,28 @@ CeruleanCity_Gym_EventScript_GymStatuePostVictory:: @ 816ABB2
 	msgbox CeruleanCity_Gym_Text_GymStatuePlayerWon
 	releaseall
 	end
+
+
+CeruleanCity_Gym_EventScript_AskRematch::
+    lock
+    faceplayer
+    msgbox CeruleanCity_Gym_Text_GymRematchIntro, MSGBOX_YESNO
+    compare VAR_RESULT, YES
+    goto_if_ne CeruleanCity_Gym_EventScript_RematchDeclined
+    cleartrainerflag TRAINER_GYM_REMATCH_MISTY
+    trainerbattle_single TRAINER_GYM_REMATCH_MISTY, CeruleanCity_Gym_Text_GymRematchIntro, CeruleanCity_Gym_Text_GymRematchDefeat, CeruleanCity_Gym_EventScript_RematchVictory
+    release
+    end
+
+CeruleanCity_Gym_EventScript_RematchVictory::
+    compare VAR_GYM_REMATCH_MISTY, 3
+    goto_if_ge CeruleanCity_Gym_EventScript_RematchDeclined
+    addvar VAR_GYM_REMATCH_MISTY, 1
+CeruleanCity_Gym_EventScript_RematchDeclined::
+    release
+    end
+
+CeruleanCity_Gym_Text_GymRematchIntro::
+    .string "Champion! Care for another battle?$"
+CeruleanCity_Gym_Text_GymRematchDefeat::
+    .string "Your strength is impressive!$"

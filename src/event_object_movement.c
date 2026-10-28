@@ -1977,7 +1977,13 @@ static void ReloadMapObjectWithOffset(u8 objectEventId, s16 x, s16 y)
     {
         LoadPlayerObjectReflectionPalette(graphicsInfo->paletteTag, graphicsInfo->paletteSlot);
     }
-    if (graphicsInfo->paletteSlot > 9)
+    // The dynamic follower owns reserved OBJ palette 11 and has no ordinary
+    // object-event palette tag. Quest Log / return-to-field object reloads
+    // must not pass its SPRITE_INVALID_TAG to PatchObjectPalette: that would
+    // index outside the palette table and overwrite the follower's colours.
+    if (graphicsInfo->paletteSlot > 9
+     && graphicsInfo->paletteTag != SPRITE_INVALID_TAG
+     && graphicsInfo->paletteTag != OBJ_EVENT_PAL_TAG_NONE)
     {
         LoadSpecialObjectReflectionPalette(graphicsInfo->paletteTag, graphicsInfo->paletteSlot);
     }
@@ -2011,6 +2017,12 @@ static void ReloadMapObjectWithOffset(u8 objectEventId, s16 x, s16 y)
         }
         ResetObjectEventFldEffData(objectEvent);
         SetObjectSubpriorityByZCoord(objectEvent->previousElevation, sprite, 1);
+        // On a Quest Log skip the saved-map object reload is faster than
+        // normal playback. Once its sprite is created, explicitly re-stage
+        // the follower's selected normal/shiny palette in its own OBJ bank.
+        // During the recap this also backs up the real colours for exit.
+        if (objectEvent->graphicsId == OBJ_EVENT_GFX_FOLLOWER)
+            Follower_RefreshPalette();
     }
 }
 

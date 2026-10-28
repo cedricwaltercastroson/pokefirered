@@ -2,6 +2,7 @@ CeladonCity_Gym_MapScripts:: @ 816D060
 	.byte 0
 
 CeladonCity_Gym_EventScript_Erika:: @ 816D061
+	goto_if_set FLAG_SYS_GAME_CLEAR, CeladonCity_Gym_EventScript_AskRematch
 	famechecker FAMECHECKER_ERIKA, FCPICKSTATE_COLORED, UpdatePickStateFromSpecialVar8005
 	trainerbattle_single TRAINER_LEADER_ERIKA, CeladonCity_Gym_Text_ErikaIntro, CeladonCity_Gym_Text_ErikaDefeat, CeladonCity_Gym_EventScript_DefeatedErika, NO_MUSIC
 	goto_if_unset FLAG_GOT_TM19_FROM_ERIKA, CeladonCity_Gym_EventScript_GiveTM19
@@ -83,3 +84,28 @@ CeladonCity_Gym_EventScript_GymStatuePostVictory:: @ 816D1E0
 	msgbox CeladonCity_Gym_Text_GymStatuePlayerWon
 	releaseall
 	end
+
+
+CeladonCity_Gym_EventScript_AskRematch::
+    lock
+    faceplayer
+    msgbox CeladonCity_Gym_Text_GymRematchIntro, MSGBOX_YESNO
+    compare VAR_RESULT, YES
+    goto_if_ne CeladonCity_Gym_EventScript_RematchDeclined
+    cleartrainerflag TRAINER_GYM_REMATCH_ERIKA
+    trainerbattle_single TRAINER_GYM_REMATCH_ERIKA, CeladonCity_Gym_Text_GymRematchIntro, CeladonCity_Gym_Text_GymRematchDefeat, CeladonCity_Gym_EventScript_RematchVictory
+    release
+    end
+
+CeladonCity_Gym_EventScript_RematchVictory::
+    compare VAR_GYM_REMATCH_ERIKA, 3
+    goto_if_ge CeladonCity_Gym_EventScript_RematchDeclined
+    addvar VAR_GYM_REMATCH_ERIKA, 1
+CeladonCity_Gym_EventScript_RematchDeclined::
+    release
+    end
+
+CeladonCity_Gym_Text_GymRematchIntro::
+    .string "Champion! Care for another battle?$"
+CeladonCity_Gym_Text_GymRematchDefeat::
+    .string "Your strength is impressive!$"

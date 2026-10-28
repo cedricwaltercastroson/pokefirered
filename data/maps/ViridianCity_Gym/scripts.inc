@@ -1,9 +1,17 @@
 .set LOCALID_GIOVANNI, 8
 
 ViridianCity_Gym_MapScripts:: @ 8169EC9
+	map_script MAP_SCRIPT_ON_LOAD, ViridianCity_Gym_OnLoadRematch
 	.byte 0
 
+ViridianCity_Gym_OnLoadRematch::
+	goto_if_unset FLAG_SYS_GAME_CLEAR, ViridianCity_Gym_OnLoadRematchDone
+	clearflag FLAG_HIDE_VIRIDIAN_GIOVANNI
+ViridianCity_Gym_OnLoadRematchDone::
+	end
+
 ViridianCity_Gym_EventScript_Giovanni:: @ 8169ECA
+	goto_if_set FLAG_SYS_GAME_CLEAR, ViridianCity_Gym_EventScript_AskRematch
 	famechecker FAMECHECKER_GIOVANNI, FCPICKSTATE_COLORED, UpdatePickStateFromSpecialVar8005
 	trainerbattle_single TRAINER_LEADER_GIOVANNI, ViridianCity_Gym_Text_GiovanniIntro, ViridianCity_Gym_Text_GiovanniDefeat, ViridianCity_Gym_EventScript_DefeatedGiovanni, NO_MUSIC
 	goto_if_unset FLAG_GOT_TM26_FROM_GIOVANNI, ViridianCity_Gym_EventScript_GiveTM26
@@ -106,3 +114,28 @@ ViridianCity_Gym_EventScript_GymStatuePostVictory:: @ 816A072
 	msgbox ViridianCity_Gym_Text_GymStatuePlayerWon
 	releaseall
 	end
+
+
+ViridianCity_Gym_EventScript_AskRematch::
+    lock
+    faceplayer
+    msgbox ViridianCity_Gym_Text_GymRematchIntro, MSGBOX_YESNO
+    compare VAR_RESULT, YES
+    goto_if_ne ViridianCity_Gym_EventScript_RematchDeclined
+    cleartrainerflag TRAINER_GYM_REMATCH_GIOVANNI
+    trainerbattle_single TRAINER_GYM_REMATCH_GIOVANNI, ViridianCity_Gym_Text_GymRematchIntro, ViridianCity_Gym_Text_GymRematchDefeat, ViridianCity_Gym_EventScript_RematchVictory
+    release
+    end
+
+ViridianCity_Gym_EventScript_RematchVictory::
+    compare VAR_GYM_REMATCH_GIOVANNI, 3
+    goto_if_ge ViridianCity_Gym_EventScript_RematchDeclined
+    addvar VAR_GYM_REMATCH_GIOVANNI, 1
+ViridianCity_Gym_EventScript_RematchDeclined::
+    release
+    end
+
+ViridianCity_Gym_Text_GymRematchIntro::
+    .string "Champion! Care for another battle?$"
+ViridianCity_Gym_Text_GymRematchDefeat::
+    .string "Your strength is impressive!$"

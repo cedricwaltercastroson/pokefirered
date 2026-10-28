@@ -1476,8 +1476,13 @@ static void OverworldBasic(void)
     CameraUpdate();
     sub_8115798();
     UpdateCameraPanning();
+    // B-skip may leave the dynamic follower using a stale OBJ palette slot.
+    // Correct its OAM assignment BEFORE BuildOamBuffer copies sprite data.
+    Follower_RepairQuestLogSkipSpriteSlot();
     BuildOamBuffer();
     UpdatePaletteFade();
+    // Repair its palette only after the fade and only once the sprite is ready.
+    Follower_RepairQuestLogSkipPalette();
     UpdateTilesetAnimations();
     DoScheduledBgTilemapCopiesToVram();
 }

@@ -43,6 +43,7 @@
 #include "constants/pokemon.h"
 #include "constants/songs.h"
 #include "constants/trainers.h"
+#include "constants/vars.h"
 
 static void SpriteCB_UnusedDebugSprite(struct Sprite *sprite);
 static void HandleAction_UseMove(void);
@@ -1516,6 +1517,95 @@ static void SpriteCB_UnusedDebugSprite_Step(struct Sprite *sprite)
     }
 }
 
+// Four post-Champion rematch teams per Kanto leader, inspired by their anime
+// rosters. Off-type Pokemon are intentional when they have anime precedent
+// (e.g. Brock's Vulpix, Koga's Scyther, Giovanni's Kingler and Machamp).
+// Pokemon not documented with a full six-member anime party use Kanto-era
+// companions appropriate to their established Gym specialties.
+// The last team slot is the leader's signature Pokemon (highest level).
+static const u16 sGymRematchSpecies[8][4][6] = {
+    // Brock: Onix, Geodude, Golbat and Vulpix are anime-linked.
+    {
+        {SPECIES_GEODUDE, SPECIES_GRAVELER, SPECIES_GOLBAT, SPECIES_VULPIX, SPECIES_RHYHORN, SPECIES_ONIX},
+        {SPECIES_GRAVELER, SPECIES_GOLBAT, SPECIES_VULPIX, SPECIES_RHYHORN, SPECIES_GOLEM, SPECIES_ONIX},
+        {SPECIES_GOLEM, SPECIES_GOLBAT, SPECIES_VULPIX, SPECIES_RHYDON, SPECIES_KABUTOPS, SPECIES_ONIX},
+        {SPECIES_GOLEM, SPECIES_GOLBAT, SPECIES_VULPIX, SPECIES_RHYDON, SPECIES_OMASTAR, SPECIES_ONIX},
+    },
+    // Misty: the anime's Psyduck, Staryu, Starmie, Horsea, Goldeen,
+    // Poliwhirl and eventual Gyarados take priority over generic Water teams.
+    {
+        {SPECIES_HORSEA, SPECIES_GOLDEEN, SPECIES_PSYDUCK, SPECIES_POLIWHIRL, SPECIES_STARYU, SPECIES_STARMIE},
+        {SPECIES_SEAKING, SPECIES_HORSEA, SPECIES_PSYDUCK, SPECIES_POLIWHIRL, SPECIES_STARYU, SPECIES_STARMIE},
+        {SPECIES_SEAKING, SPECIES_SEADRA, SPECIES_PSYDUCK, SPECIES_POLIWHIRL, SPECIES_STARMIE, SPECIES_GYARADOS},
+        {SPECIES_SEAKING, SPECIES_SEADRA, SPECIES_STARYU, SPECIES_PSYDUCK, SPECIES_STARMIE, SPECIES_GYARADOS},
+    },
+    // Lt. Surge's anime ace is Raichu. Other party members are Electric-type
+    // Kanto complements, not claims of documented anime ownership.
+    {
+        {SPECIES_PIKACHU, SPECIES_VOLTORB, SPECIES_MAGNEMITE, SPECIES_ELECTRODE, SPECIES_ELECTABUZZ, SPECIES_RAICHU},
+        {SPECIES_PIKACHU, SPECIES_ELECTRODE, SPECIES_MAGNEMITE, SPECIES_MAGNETON, SPECIES_ELECTABUZZ, SPECIES_RAICHU},
+        {SPECIES_JOLTEON, SPECIES_ELECTRODE, SPECIES_MAGNETON, SPECIES_PIKACHU, SPECIES_ELECTABUZZ, SPECIES_RAICHU},
+        {SPECIES_JOLTEON, SPECIES_ELECTRODE, SPECIES_MAGNETON, SPECIES_ELECTABUZZ, SPECIES_PIKACHU, SPECIES_RAICHU},
+    },
+    // Erika: Gloom is kept as her anime ace. Tangela, Weepinbell,
+    // Victreebel and Vileplume were also shown at Celadon Gym.
+    {
+        {SPECIES_BELLSPROUT, SPECIES_TANGELA, SPECIES_WEEPINBELL, SPECIES_PARASECT, SPECIES_VICTREEBEL, SPECIES_GLOOM},
+        {SPECIES_TANGELA, SPECIES_WEEPINBELL, SPECIES_EXEGGUTOR, SPECIES_VICTREEBEL, SPECIES_VILEPLUME, SPECIES_GLOOM},
+        {SPECIES_TANGELA, SPECIES_EXEGGUTOR, SPECIES_PARASECT, SPECIES_VICTREEBEL, SPECIES_VILEPLUME, SPECIES_GLOOM},
+        {SPECIES_TANGELA, SPECIES_EXEGGUTOR, SPECIES_VICTREEBEL, SPECIES_PARASECT, SPECIES_VILEPLUME, SPECIES_GLOOM},
+    },
+    // Koga: Venomoth, Golbat and Scyther are anime Pokemon. Voltorb
+    // represents the traps used in his anime Gym; poison-types fill the rest.
+    {
+        {SPECIES_VOLTORB, SPECIES_VENONAT, SPECIES_SCYTHER, SPECIES_KOFFING, SPECIES_WEEZING, SPECIES_GOLBAT},
+        {SPECIES_VOLTORB, SPECIES_SCYTHER, SPECIES_VENONAT, SPECIES_MUK, SPECIES_WEEZING, SPECIES_GOLBAT},
+        {SPECIES_ELECTRODE, SPECIES_SCYTHER, SPECIES_WEEZING, SPECIES_MUK, SPECIES_GOLBAT, SPECIES_VENOMOTH},
+        {SPECIES_VOLTORB, SPECIES_SCYTHER, SPECIES_MUK, SPECIES_WEEZING, SPECIES_GOLBAT, SPECIES_VENOMOTH},
+    },
+    // Sabrina: Kadabra remains the anime ace rather than replacing it with
+    // Alakazam; the rest are Kanto Psychic-themed Gym complements.
+    {
+        {SPECIES_ABRA, SPECIES_DROWZEE, SPECIES_SLOWBRO, SPECIES_MR_MIME, SPECIES_HYPNO, SPECIES_KADABRA},
+        {SPECIES_DROWZEE, SPECIES_MR_MIME, SPECIES_SLOWBRO, SPECIES_HYPNO, SPECIES_ALAKAZAM, SPECIES_KADABRA},
+        {SPECIES_JYNX, SPECIES_MR_MIME, SPECIES_SLOWBRO, SPECIES_HYPNO, SPECIES_ALAKAZAM, SPECIES_KADABRA},
+        {SPECIES_EXEGGUTOR, SPECIES_MR_MIME, SPECIES_SLOWBRO, SPECIES_HYPNO, SPECIES_ALAKAZAM, SPECIES_KADABRA},
+    },
+    // Blaine: Magmar, Rhydon and Ninetales appeared in his anime battle.
+    {
+        {SPECIES_GROWLITHE, SPECIES_PONYTA, SPECIES_NINETALES, SPECIES_RAPIDASH, SPECIES_RHYDON, SPECIES_MAGMAR},
+        {SPECIES_GROWLITHE, SPECIES_FLAREON, SPECIES_NINETALES, SPECIES_RAPIDASH, SPECIES_RHYDON, SPECIES_MAGMAR},
+        {SPECIES_FLAREON, SPECIES_ARCANINE, SPECIES_NINETALES, SPECIES_RAPIDASH, SPECIES_RHYDON, SPECIES_MAGMAR},
+        {SPECIES_ARCANINE, SPECIES_FLAREON, SPECIES_RAPIDASH, SPECIES_NINETALES, SPECIES_RHYDON, SPECIES_MAGMAR},
+    },
+    // Giovanni's anime Viridian Gym has a deliberately mixed roster:
+    // Persian, Kingler, Golem, Machamp, Rhydon and Cloyster. Mewtwo is
+    // intentionally excluded to preserve post-League battle balance.
+    {
+        {SPECIES_NIDORINO, SPECIES_NIDOQUEEN, SPECIES_KINGLER, SPECIES_GOLEM, SPECIES_PERSIAN, SPECIES_RHYDON},
+        {SPECIES_NIDOQUEEN, SPECIES_KINGLER, SPECIES_GOLEM, SPECIES_MACHAMP, SPECIES_PERSIAN, SPECIES_RHYDON},
+        {SPECIES_NIDOKING, SPECIES_CLOYSTER, SPECIES_KINGLER, SPECIES_MACHAMP, SPECIES_PERSIAN, SPECIES_RHYDON},
+        {SPECIES_GOLEM, SPECIES_CLOYSTER, SPECIES_KINGLER, SPECIES_MACHAMP, SPECIES_PERSIAN, SPECIES_RHYDON},
+    },
+};
+
+static u8 CreateGymRematchParty(struct Pokemon *party, u16 trainerNum)
+{
+    u16 gym = trainerNum - TRAINER_GYM_REMATCH_BROCK;
+    u16 tier = VarGet(VAR_GYM_REMATCH_BROCK + gym);
+    u8 i;
+    if (tier > 3)
+        tier = 3;
+    ZeroEnemyPartyMons();
+    for (i = 0; i < 6; i++)
+    {
+        u16 species = sGymRematchSpecies[gym][tier][i];
+        u8 level = 49 + tier * 3 + i; // Four tiers: 49-54, 52-57, 55-60, 58-63.
+        CreateMon(&party[i], species, level, 26, FALSE, 0, OT_ID_RANDOM_NO_SHINY, 0);
+    }
+    return 6;
+}
+
 static u8 CreateNPCTrainerParty(struct Pokemon *party, u16 trainerNum)
 {
     u32 nameHash = 0;
@@ -1525,6 +1615,13 @@ static u8 CreateNPCTrainerParty(struct Pokemon *party, u16 trainerNum)
 
     if (trainerNum == TRAINER_SECRET_BASE)
         return 0;
+    // Trainer IDs can persist after a Gym rematch. Wild battles must keep their
+    // already-generated wild party, even if the last opponent was a Gym Leader.
+    if ((gBattleTypeFlags & BATTLE_TYPE_TRAINER)
+     && !(gBattleTypeFlags & (BATTLE_TYPE_BATTLE_TOWER | BATTLE_TYPE_EREADER_TRAINER | BATTLE_TYPE_TRAINER_TOWER))
+     && trainerNum >= TRAINER_GYM_REMATCH_BROCK
+     && trainerNum <= TRAINER_GYM_REMATCH_GIOVANNI)
+        return CreateGymRematchParty(party, trainerNum);
     if (gBattleTypeFlags & BATTLE_TYPE_TRAINER
      && !(gBattleTypeFlags & (BATTLE_TYPE_BATTLE_TOWER | BATTLE_TYPE_EREADER_TRAINER | BATTLE_TYPE_TRAINER_TOWER)))
     {

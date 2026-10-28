@@ -10818,3 +10818,13 @@ static const struct TrainerMonNoItemDefaultMoves sParty_CueBallPaxton[] = {
         .species = SPECIES_MUK,
     },
 };
+
+// Placeholder party: rematch species and levels are selected in battle_main.c.
+static const struct TrainerMonNoItemDefaultMoves sParty_GymRematchPlaceholder[] = {
+    {.iv = 220, .lvl = 55, .species = SPECIES_GEODUDE},
+    {.iv = 220, .lvl = 55, .species = SPECIES_GEODUDE},
+    {.iv = 220, .lvl = 55, .species = SPECIES_GEODUDE},
+    {.iv = 220, .lvl = 55, .species = SPECIES_GEODUDE},
+    {.iv = 220, .lvl = 55, .species = SPECIES_GEODUDE},
+    {.iv = 220, .lvl = 55, .species = SPECIES_GEODUDE},
+};

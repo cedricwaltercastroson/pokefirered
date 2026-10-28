@@ -33,6 +33,7 @@
 #include "constants/songs.h"
 #include "constants/pokemon.h"
 #include "constants/trainers.h"
+#include "constants/opponents.h"
 
 enum
 {
@@ -203,7 +204,12 @@ static void Task_BattleStart(u8 taskId)
 
 static void CreateBattleStartTask(u8 transition, u16 song) // song == 0 means default music for current map
 {
-    u8 taskId = CreateTask(Task_BattleStart, 1);
+    u8 taskId;
+
+    // Snapshot the visible follower before the battle transition discards field
+    // objects. The player controller consumes this once for the lead send-out.
+    Follower_PrepareBattleEntry();
+    taskId = CreateTask(Task_BattleStart, 1);
 
     gTasks[taskId].tTransition = transition;
     PlayMapChosenOrBattleBGM(song);
@@ -415,7 +421,9 @@ static void CB2_EndWildBattle(void)
     }
     else
     {
-        Follower_NotifyBattleReturn();
+        // Standard, roaming and Tower ghost encounters: return the follower
+        // on the safe rear tile after the field fade, without another step.
+        Follower_NotifyWildBattleReturn();
         SetMainCallback2(CB2_ReturnToField);
         RefillMovesPlayerParty();
         gFieldCallback = FieldCB_SafariZoneRanOutOfBalls;
@@ -942,7 +950,14 @@ static void CB2_EndTrainerBattle(void)
         }
         else
         {
-            Follower_NotifyBattleReturn();
+            // Direct post-Champion Gym rematches use the same settled,
+            // stationary follower return as the Pokemon League. Do not
+            // alter the normal trainer / VS Seeker battle return path.
+            if (gTrainerBattleOpponent_A >= TRAINER_GYM_REMATCH_BROCK
+             && gTrainerBattleOpponent_A <= TRAINER_GYM_REMATCH_GIOVANNI)
+                Follower_NotifyGymRematchReturn();
+            else
+                Follower_NotifyBattleReturn();
             SetMainCallback2(CB2_ReturnToFieldContinueScriptPlayMapMusic);
             RefillMovesPlayerParty();
             SetBattledTrainerFlag();

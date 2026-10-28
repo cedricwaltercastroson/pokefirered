@@ -8378,4 +8378,102 @@ const struct Trainer gTrainers[] = {
         .partySize = NELEMS(sParty_CueBallPaxton),
         .party = {.NoItemDefaultMoves = sParty_CueBallPaxton}
     },
+
+    // Gym rematch trainer records; one ID per leader (tier in saved variables).
+    [TRAINER_GYM_REMATCH_BROCK] = {
+        .partyFlags = 0,
+        .trainerClass = TRAINER_CLASS_LEADER,
+        .encounterMusic_gender = TRAINER_ENCOUNTER_MUSIC_MALE,
+        .trainerPic = TRAINER_PIC_LEADER_BROCK,
+        .trainerName = _("BROCK"),
+        .items = {ITEM_FULL_RESTORE, ITEM_FULL_RESTORE},
+        .doubleBattle = FALSE,
+        .aiFlags = AI_SCRIPT_CHECK_BAD_MOVE | AI_SCRIPT_TRY_TO_FAINT | AI_SCRIPT_CHECK_VIABILITY,
+        .partySize = NELEMS(sParty_GymRematchPlaceholder),
+        .party = {.NoItemDefaultMoves = sParty_GymRematchPlaceholder}
+    },
+    [TRAINER_GYM_REMATCH_MISTY] = {
+        .partyFlags = 0,
+        .trainerClass = TRAINER_CLASS_LEADER,
+        .encounterMusic_gender = TRAINER_ENCOUNTER_MUSIC_FEMALE | F_TRAINER_FEMALE,
+        .trainerPic = TRAINER_PIC_LEADER_MISTY,
+        .trainerName = _("MISTY"),
+        .items = {ITEM_FULL_RESTORE, ITEM_FULL_RESTORE},
+        .doubleBattle = FALSE,
+        .aiFlags = AI_SCRIPT_CHECK_BAD_MOVE | AI_SCRIPT_TRY_TO_FAINT | AI_SCRIPT_CHECK_VIABILITY,
+        .partySize = NELEMS(sParty_GymRematchPlaceholder),
+        .party = {.NoItemDefaultMoves = sParty_GymRematchPlaceholder}
+    },
+    [TRAINER_GYM_REMATCH_LT_SURGE] = {
+        .partyFlags = 0,
+        .trainerClass = TRAINER_CLASS_LEADER,
+        .encounterMusic_gender = TRAINER_ENCOUNTER_MUSIC_MALE,
+        .trainerPic = TRAINER_PIC_LEADER_LT_SURGE,
+        .trainerName = _("LT SURGE"),
+        .items = {ITEM_FULL_RESTORE, ITEM_FULL_RESTORE},
+        .doubleBattle = FALSE,
+        .aiFlags = AI_SCRIPT_CHECK_BAD_MOVE | AI_SCRIPT_TRY_TO_FAINT | AI_SCRIPT_CHECK_VIABILITY,
+        .partySize = NELEMS(sParty_GymRematchPlaceholder),
+        .party = {.NoItemDefaultMoves = sParty_GymRematchPlaceholder}
+    },
+    [TRAINER_GYM_REMATCH_ERIKA] = {
+        .partyFlags = 0,
+        .trainerClass = TRAINER_CLASS_LEADER,
+        .encounterMusic_gender = TRAINER_ENCOUNTER_MUSIC_FEMALE | F_TRAINER_FEMALE,
+        .trainerPic = TRAINER_PIC_LEADER_ERIKA,
+        .trainerName = _("ERIKA"),
+        .items = {ITEM_FULL_RESTORE, ITEM_FULL_RESTORE},
+        .doubleBattle = FALSE,
+        .aiFlags = AI_SCRIPT_CHECK_BAD_MOVE | AI_SCRIPT_TRY_TO_FAINT | AI_SCRIPT_CHECK_VIABILITY,
+        .partySize = NELEMS(sParty_GymRematchPlaceholder),
+        .party = {.NoItemDefaultMoves = sParty_GymRematchPlaceholder}
+    },
+    [TRAINER_GYM_REMATCH_KOGA] = {
+        .partyFlags = 0,
+        .trainerClass = TRAINER_CLASS_LEADER,
+        .encounterMusic_gender = TRAINER_ENCOUNTER_MUSIC_MALE,
+        .trainerPic = TRAINER_PIC_LEADER_KOGA,
+        .trainerName = _("KOGA"),
+        .items = {ITEM_FULL_RESTORE, ITEM_FULL_RESTORE},
+        .doubleBattle = FALSE,
+        .aiFlags = AI_SCRIPT_CHECK_BAD_MOVE | AI_SCRIPT_TRY_TO_FAINT | AI_SCRIPT_CHECK_VIABILITY,
+        .partySize = NELEMS(sParty_GymRematchPlaceholder),
+        .party = {.NoItemDefaultMoves = sParty_GymRematchPlaceholder}
+    },
+    [TRAINER_GYM_REMATCH_SABRINA] = {
+        .partyFlags = 0,
+        .trainerClass = TRAINER_CLASS_LEADER,
+        .encounterMusic_gender = TRAINER_ENCOUNTER_MUSIC_FEMALE | F_TRAINER_FEMALE,
+        .trainerPic = TRAINER_PIC_LEADER_SABRINA,
+        .trainerName = _("SABRINA"),
+        .items = {ITEM_FULL_RESTORE, ITEM_FULL_RESTORE},
+        .doubleBattle = FALSE,
+        .aiFlags = AI_SCRIPT_CHECK_BAD_MOVE | AI_SCRIPT_TRY_TO_FAINT | AI_SCRIPT_CHECK_VIABILITY,
+        .partySize = NELEMS(sParty_GymRematchPlaceholder),
+        .party = {.NoItemDefaultMoves = sParty_GymRematchPlaceholder}
+    },
+    [TRAINER_GYM_REMATCH_BLAINE] = {
+        .partyFlags = 0,
+        .trainerClass = TRAINER_CLASS_LEADER,
+        .encounterMusic_gender = TRAINER_ENCOUNTER_MUSIC_MALE,
+        .trainerPic = TRAINER_PIC_LEADER_BLAINE,
+        .trainerName = _("BLAINE"),
+        .items = {ITEM_FULL_RESTORE, ITEM_FULL_RESTORE},
+        .doubleBattle = FALSE,
+        .aiFlags = AI_SCRIPT_CHECK_BAD_MOVE | AI_SCRIPT_TRY_TO_FAINT | AI_SCRIPT_CHECK_VIABILITY,
+        .partySize = NELEMS(sParty_GymRematchPlaceholder),
+        .party = {.NoItemDefaultMoves = sParty_GymRematchPlaceholder}
+    },
+    [TRAINER_GYM_REMATCH_GIOVANNI] = {
+        .partyFlags = 0,
+        .trainerClass = TRAINER_CLASS_LEADER,
+        .encounterMusic_gender = TRAINER_ENCOUNTER_MUSIC_MALE,
+        .trainerPic = TRAINER_PIC_LEADER_GIOVANNI,
+        .trainerName = _("GIOVANNI"),
+        .items = {ITEM_FULL_RESTORE, ITEM_FULL_RESTORE},
+        .doubleBattle = FALSE,
+        .aiFlags = AI_SCRIPT_CHECK_BAD_MOVE | AI_SCRIPT_TRY_TO_FAINT | AI_SCRIPT_CHECK_VIABILITY,
+        .partySize = NELEMS(sParty_GymRematchPlaceholder),
+        .party = {.NoItemDefaultMoves = sParty_GymRematchPlaceholder}
+    },
 };

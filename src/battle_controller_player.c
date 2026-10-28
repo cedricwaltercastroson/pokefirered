@@ -12,6 +12,7 @@
 #include "task.h"
 #include "util.h"
 #include "battle.h"
+#include "following_pokemon.h"
 #include "battle_anim.h"
 #include "battle_controllers.h"
 #include "battle_interface.h"
@@ -99,6 +100,9 @@ static void SetPlayerMonData(u8 monId);
 static void DoSwitchOutAnimation(void);
 static void PlayerDoMoveAnimation(void);
 static void Task_StartSendOutAnim(u8 taskId);
+static void Task_StartFollowerBattleEntry(u8 taskId);
+static void SpriteCB_FollowerBattleSlideIn(struct Sprite *sprite);
+static void Intro_WaitForFollowerBattleSlide(void);
 static void PreviewDeterminativeMoveTargets(void);
 static void SwitchIn_HandleSoundAndEnd(void);
 static void Task_GiveExpWithExpBar(u8 taskId);
@@ -2703,6 +2707,22 @@ static void PlayerHandleIntroTrainerBallThrow(void)
     u8 paletteNum;
     u8 taskId;
 
+    // The Pokémon is already out of its Poké Ball on the field. This affects
+    // ONLY its first battle send-out, not switches, faint replacements or
+    // unusual/link battle modes (which use the original animation).
+    if (Follower_TakeBattleEntrySlide(gBattlerPartyIndexes[gActiveBattler]))
+    {
+        taskId = CreateTask(Task_StartFollowerBattleEntry, 5);
+        gTasks[taskId].data[0] = gActiveBattler;
+        gTasks[taskId].data[1] = gBattlerSpriteIds[gActiveBattler];
+        gTasks[taskId].data[2] = 0;
+        if (gBattleSpritesDataPtr->healthBoxesData[gActiveBattler].partyStatusSummaryShown)
+            gTasks[gBattlerStatusSummaryTaskId[gActiveBattler]].func = Task_HidePartyStatusSummary;
+        gBattleSpritesDataPtr->animationData->healthboxSlideInStarted = 1;
+        gBattlerControllerFuncs[gActiveBattler] = PlayerDummy;
+        return;
+    }
+
     SetSpritePrimaryCoordsFromSecondaryCoords(&gSprites[gBattlerSpriteIds[gActiveBattler]]);
     gSprites[gBattlerSpriteIds[gActiveBattler]].data[0] = 50;
     gSprites[gBattlerSpriteIds[gActiveBattler]].data[2] = -40;
@@ -2720,6 +2740,68 @@ static void PlayerHandleIntroTrainerBallThrow(void)
         gTasks[gBattlerStatusSummaryTaskId[gActiveBattler]].func = Task_HidePartyStatusSummary;
     gBattleSpritesDataPtr->animationData->healthboxSlideInStarted = 1;
     gBattlerControllerFuncs[gActiveBattler] = PlayerDummy;
+}
+
+// A brief, Poké Ball-free opening for the one Pokémon already following the
+// player. Slide the trainer offscreen, then slide the actual battle back-sprite
+// into position. The existing shiny/healthbox controller takes over afterward.
+static void Task_StartFollowerBattleEntry(u8 taskId)
+{
+    u8 battlerId = gTasks[taskId].data[0];
+    u8 trainerSpriteId = gTasks[taskId].data[1];
+    u16 species;
+    u8 monSpriteId;
+
+    // Keep the same total travel distance, but let the follower's entrance
+    // breathe rather than rushing through both halves of the opening.
+    if (gTasks[taskId].data[2]++ < 18)
+    {
+        gSprites[trainerSpriteId].x2 -= 8;
+        return;
+    }
+
+    FreeSpriteOamMatrix(&gSprites[trainerSpriteId]);
+    FreeSpritePaletteByTag(GetSpritePaletteTagByPaletteNum(gSprites[trainerSpriteId].oam.paletteNum));
+    DestroySprite(&gSprites[trainerSpriteId]);
+
+    species = GetMonData(&gPlayerParty[gBattlerPartyIndexes[battlerId]], MON_DATA_SPECIES);
+    BattleLoadPlayerMonSpriteGfx(&gPlayerParty[gBattlerPartyIndexes[battlerId]], battlerId);
+    SetMultiuseSpriteTemplateToPokemon(species, GetBattlerPosition(battlerId));
+    monSpriteId = CreateSprite(&gMultiuseSpriteTemplate,
+                              GetBattlerSpriteCoord(battlerId, 2),
+                              GetBattlerSpriteDefault_Y(battlerId),
+                              GetBattlerSpriteSubpriority(battlerId));
+    gBattlerSpriteIds[battlerId] = monSpriteId;
+    gSprites[monSpriteId].data[0] = battlerId;
+    gSprites[monSpriteId].data[2] = species;
+    gSprites[monSpriteId].oam.paletteNum = battlerId;
+    StartSpriteAnim(&gSprites[monSpriteId], gBattleMonForms[battlerId]);
+    gSprites[monSpriteId].x2 = -96;
+    gSprites[monSpriteId].invisible = FALSE;
+    gSprites[monSpriteId].callback = SpriteCB_FollowerBattleSlideIn;
+    // Intro_TryShinyAnimShowHealthbox destroys this sentinel just as it does
+    // after the ordinary ball-release animation.
+    gBattleControllerData[battlerId] = CreateInvisibleSpriteWithCallback(SpriteCallbackDummy);
+    gBattlerControllerFuncs[battlerId] = Intro_WaitForFollowerBattleSlide;
+    DestroyTask(taskId);
+}
+
+static void SpriteCB_FollowerBattleSlideIn(struct Sprite *sprite)
+{
+    // The 96-pixel slide now lasts 24 frames instead of 12.
+    sprite->x2 += 4;
+    if (sprite->x2 >= 0)
+    {
+        sprite->x2 = 0;
+        sprite->callback = SpriteCallbackDummy;
+        PlayCry3(sprite->data[2], -25, 0);
+    }
+}
+
+static void Intro_WaitForFollowerBattleSlide(void)
+{
+    if (gSprites[gBattlerSpriteIds[gActiveBattler]].callback == SpriteCallbackDummy)
+        gBattlerControllerFuncs[gActiveBattler] = Intro_TryShinyAnimShowHealthbox;
 }
 
 void SpriteCB_FreePlayerSpriteLoadMonSprite(struct Sprite *sprite)

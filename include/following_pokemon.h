@@ -16,6 +16,11 @@ struct ObjectEvent;
 const struct ObjectEventGraphicsInfo *Follower_GetGraphicsInfo(void);
 void Follower_Update(struct ObjectEvent *player);
 void Follower_ResetForMapLoad(void);
+// Reconcile the follower once the Quest Log has restored normal field control.
+void Follower_ResumeAfterQuestLog(void);
+void Follower_ArmQuestLogSkipPaletteRepair(void);
+void Follower_RepairQuestLogSkipSpriteSlot(void);
+void Follower_RepairQuestLogSkipPalette(void);
 void Follower_BeginMapConnectionTransition(void);
 void Follower_FinishMapConnectionTransition(void);
 void Follower_RebaseForCameraUpdate(s16 dx, s16 dy);
@@ -48,6 +53,14 @@ void Follower_PrimeForOverworldDisplay(void);
 void Follower_StabilizeBattleReturnPalette(void);
 void Follower_StabilizeBattleReturnSpriteSlot(void);
 void Follower_NotifyBattleReturn(void);
+// Gym Leader rematch only: return behind the player after dialogue/fade.
+void Follower_NotifyGymRematchReturn(void);
+// Ordinary wild battle only: safe stationary rear return after field fade.
+void Follower_NotifyWildBattleReturn(void);
+// Snapshot only a currently visible follower at the start of a field battle.
+// Consume once at the initial player send-out; never affect party switches.
+void Follower_PrepareBattleEntry(void);
+bool8 Follower_TakeBattleEntrySlide(u8 partyIndex);
 void Follower_BeginDoorWarp(void);
 void Follower_BeginBuildingExitWarp(void);
 void Follower_EndBuildingExitWarp(void);

@@ -1103,8 +1103,15 @@ static void Task_QuestLogScene_SavedGame(u8 taskId)
 {
     struct Task *task = &gTasks[taskId];
 
-    if (!gPaletteFade.active)
+    // The dedicated follower OBJ palette can still contain the fade-in
+    // colour after the final Quest Log map has loaded. Refresh it only when
+    // BOTH palette and weather fades are complete, while BACKUP_GRAYSCALE is
+    // active. This restores the proper grayscale follower and backs up its
+    // real colours for the final transition without revealing full colour
+    // during the recap or touching ordinary overworld frames.
+    if (!gPaletteFade.active && IsWeatherNotFadingIn())
     {
+        Follower_RefreshPalette();
         if (sQuestLogCurrentScene.sceneEndMode != 1)
         {
             GetMapNameGeneric(gStringVar1, gMapHeader.regionMapSectionId);
@@ -1175,7 +1182,9 @@ static void Task_EndQuestLog(u8 taskId)
             tState++;
         break;
     default:
-        if (sQuestLogCurrentScene.sceneEndMode == 1)
+    {
+        bool8 skipped = sQuestLogCurrentScene.sceneEndMode == 1;
+        if (skipped)
             ShowMapNamePopup(TRUE);
         CpuCopy16(sPalettesBackup, gPlttBufferUnfaded, PLTT_SIZE);
         Free(sPalettesBackup);
@@ -1188,10 +1197,27 @@ static void Task_EndQuestLog(u8 taskId)
         // when the loaded save is now at night. Replace eligible BG palettes
         // before this frame reaches VBlank; no daylight flash or catch-up fade.
         TimeOfDay_RestoreAfterQuestLog();
+        // Quest Log playback reconstructs object events without a normal
+        // warp. Reconcile the dynamic follower now that scripts and palettes
+        // are restored; otherwise an old travel latch can strand its sprite.
+        Follower_ResumeAfterQuestLog();
+        // The recap's grayscale conversion also changes the displayed OBJ
+        // palette buffer. The saved palette restored above only repairs its
+        // unfaded source; repaint the follower's reserved slot in BOTH buffers
+        // after resync, before the first normal field frame is displayed.
+        // This is a one-time Quest Log exit repair, not a per-frame update.
+        Follower_RefreshPalette();
+        // Pressing B skips the Quest Log's normal display delay. Unlike
+        // watching the recap, this can leave a later palette update after
+        // the initial follower refresh. Repair the final displayed OBJ bank
+        // for a few settled frames; never change the recap's grayscale.
+        if (skipped)
+            Follower_ArmQuestLogSkipPaletteRepair();
         DisableWildEncounters(FALSE);
         gHelpSystemEnabled = TRUE;
         DestroyTask(taskId);
         break;
+    }
     }
 }
 

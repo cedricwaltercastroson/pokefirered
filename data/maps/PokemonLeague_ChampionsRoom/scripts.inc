@@ -197,14 +197,18 @@ PokemonLeague_ChampionsRoom_Movement_PlayerWatchOakEnter:: @ 8162D1F
 	step_end
 
 PokemonLeague_ChampionsRoom_Movement_OakEnter:: @ 8162D2A
+	@ After the Champion battle the follower stands behind Red at (6, 10).
+	@ Veer into the left aisle BEFORE reaching that tile, rather than walking
+	@ through the visible follower. Keep Oak's final position and step count.
+	@ No follower recall, hide, teleport, or Hall of Fame changes are needed.
 	delay_16
 	delay_16
-	walk_up
-	walk_up
 	walk_up
 	walk_up
 	walk_up
 	walk_left
+	walk_up
+	walk_up
 	walk_up
 	walk_up
 	walk_in_place_fastest_down

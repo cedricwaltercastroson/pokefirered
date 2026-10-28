@@ -2,6 +2,7 @@ PewterCity_Gym_MapScripts:: @ 816A592
 	.byte 0
 
 PewterCity_Gym_EventScript_Brock:: @ 816A593
+	goto_if_set FLAG_SYS_GAME_CLEAR, PewterCity_Gym_EventScript_AskRematch
 	famechecker FAMECHECKER_BROCK, FCPICKSTATE_COLORED, UpdatePickStateFromSpecialVar8005
 	trainerbattle_single TRAINER_LEADER_BROCK, PewterCity_Gym_Text_BrockIntro, PewterCity_Gym_Text_BrockDefeat, PewterCity_Gym_EventScript_DefeatedBrock, NO_MUSIC
 	goto_if_unset FLAG_GOT_TM39_FROM_BROCK, PewterCity_Gym_EventScript_GiveTM39
@@ -83,3 +84,28 @@ PewterCity_Gym_EventScript_GymStatuePostVictory:: @ 816A6C3
 	msgbox PewterCity_Gym_Text_GymStatuePlayerWon
 	releaseall
 	end
+
+
+PewterCity_Gym_EventScript_AskRematch::
+    lock
+    faceplayer
+    msgbox PewterCity_Gym_Text_GymRematchIntro, MSGBOX_YESNO
+    compare VAR_RESULT, YES
+    goto_if_ne PewterCity_Gym_EventScript_RematchDeclined
+    cleartrainerflag TRAINER_GYM_REMATCH_BROCK
+    trainerbattle_single TRAINER_GYM_REMATCH_BROCK, PewterCity_Gym_Text_GymRematchIntro, PewterCity_Gym_Text_GymRematchDefeat, PewterCity_Gym_EventScript_RematchVictory
+    release
+    end
+
+PewterCity_Gym_EventScript_RematchVictory::
+    compare VAR_GYM_REMATCH_BROCK, 3
+    goto_if_ge PewterCity_Gym_EventScript_RematchDeclined
+    addvar VAR_GYM_REMATCH_BROCK, 1
+PewterCity_Gym_EventScript_RematchDeclined::
+    release
+    end
+
+PewterCity_Gym_Text_GymRematchIntro::
+    .string "Champion! Care for another battle?$"
+PewterCity_Gym_Text_GymRematchDefeat::
+    .string "Your strength is impressive!$"

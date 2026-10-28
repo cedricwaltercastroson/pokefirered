@@ -1,6 +1,7 @@
 #include "global.h"
 #include "gflib.h"
 #include "pokemon.h"
+#include "battle.h"
 #include "string_util.h"
 #include "event_object_movement.h"
 #include "field_player_avatar.h"
@@ -165,7 +166,18 @@ static s16 sPlayerJumpLandingX;
 static s16 sPlayerJumpLandingY;
 static u16 sFollowerSpecies;
 static bool8 sFollowerShiny;
+// Battle rendering replaces field object sprites, so capture follower status
+// while still on the overworld. Zero means no eligible visible follower;
+// eligible party indexes are stored as index + 1 to keep this state in BSS.
+// The custom FireRed linker script does not map our module's initialized .data.
+static u8 sBattleEntryFollowerPartyIndex;
 static bool8 sPaletteRefreshAfterLoad;
+// The B-skip Quest Log path can return to the overworld before the follower's
+// dynamic sprite is ready. Count *ready, settled* frames, not wall-clock frames:
+// an early missing follower must not silently cancel its palette repair.
+#define FOLLOWER_QUEST_LOG_SKIP_PALETTE_FRAMES 4
+static u8 sQuestLogSkipPaletteFrames;
+
 // Only set while the field loader is priming the follower before fade-in.
 // An ordinary field reload can try an adjacent free tile, but a battle return
 // must NEVER relocate the follower sideways or ahead of the player.
@@ -180,6 +192,12 @@ static bool8 sBattleReturnPending;
 // The coordinates track the LAST settled player tile, not an arbitrary side
 // tile, so the follower returns on the tile the player actually vacated.
 static bool8 sBattleRecallAwaitStep;
+// Gym Leader rematches use the League's stationary rear-tile return after
+// dialogue and fade. Regular trainer battles still wait for a player step.
+static bool8 sGymRematchReturnPending;
+// Ordinary wild encounters use the same settled, safe rear-tile return.
+// Scripted legendary and Safari battles keep their own existing callbacks.
+static bool8 sWildBattleReturnPending;
 // Door entries and indoor-to-indoor warps retain the approved Emerald handoff.
 // Outdoor BUILDING exits use a separate Safari-style deferred first-step
 // handoff: the scripted southward door-exit motion is NOT a player step.
@@ -191,6 +209,9 @@ static bool8 sDoorRecallExpectsExitStep;
 static bool8 sDoorRecallOutdoorExitPending;
 // Only the destination warp-exit task can permit the first voluntary step.
 static bool8 sDoorRecallExitReady;
+// Fly/field Teleport -> immediate building entry -> exit: keep a one-time
+// handoff across the two map resets until the follower has been restored.
+static bool8 sInterruptedTravelBuildingEntry;
 static s16 sDoorRecallAnchorX;
 static s16 sDoorRecallAnchorY;
 static u8 sDoorRecallMapNum;
@@ -379,10 +400,19 @@ void Follower_ResetForMapLoad(void)
     sHallOfFameRecallActive = FALSE;
     sFollowerSpecies = SPECIES_NONE;
     sFollowerShiny = FALSE;
+    sBattleEntryFollowerPartyIndex = 0;
     sPaletteRefreshAfterLoad = TRUE;
+    sQuestLogSkipPaletteFrames = 0;
     sBattlePaletteGuardFrames = 0;
     sBattlePaletteSettledFrames = 0;
     sBattleRecallAwaitStep = FALSE;
+    // Preserve the selected gym return through the battle-to-field reload,
+    // but never carry it into an unrelated map transition.
+    if (!sBattleReturnPending)
+    {
+        sGymRematchReturnPending = FALSE;
+        sWildBattleReturnPending = FALSE;
+    }
     // Door recalls must survive ResetObjectEvents, but old-map coordinates
     // must not leak into the new map. PrimeForOverworldDisplay anchors once
     // the destination player object has valid coordinates.
@@ -425,6 +455,73 @@ static void Follower_Dequeue(void)
     }
 }
 
+// The Quest Log replays NPC snapshots, then restores the saved game's object
+// state without a normal map warp. Its final callback must reconcile the
+// dynamic follower explicitly: an old doorway/travel latch or old playback
+// position must not strand it after control returns to the player.
+// This runs ONCE when Quest Log playback finishes; no frame-loop polling.
+void Follower_ResumeAfterQuestLog(void)
+{
+    u8 playerId = gPlayerAvatar.objectEventId;
+
+    if (QL_IS_PLAYBACK_STATE || playerId >= OBJECT_EVENTS_COUNT
+     || !gObjectEvents[playerId].active || !gObjectEvents[playerId].isPlayer)
+        return;
+
+    // Playback is complete. The saved location is now authoritative, not
+    // the previous session's in-flight travel, warp, battle or script state.
+    sFlyRecallActive = FALSE;
+    sFlyReturnAwaitStep = FALSE;
+    sFlyReturnHasAnchor = FALSE;
+    sFlyReleaseSoundPending = FALSE;
+    sFieldTravelRecallActive = FALSE;
+    sFieldTravelAwaitStep = FALSE;
+    sFieldTravelHasAnchor = FALSE;
+    sFieldTravelReleaseSoundPending = FALSE;
+    sDoorWarpRecall = FALSE;
+    sDoorRecallOutdoorExitPending = FALSE;
+    sDoorRecallExitReady = FALSE;
+    sDoorRecallHasAnchor = FALSE;
+    sDoorRecallExpectsExitStep = FALSE;
+    sInterruptedTravelBuildingEntry = FALSE;
+    sSafariWarpAwaitStep = FALSE;
+    sSafariWarpHasAnchor = FALSE;
+    sBattleReturnPending = FALSE;
+    sBattleRecallAwaitStep = FALSE;
+    sGymRematchReturnPending = FALSE;
+    sWildBattleReturnPending = FALSE;
+    sWarpPadRecall = FALSE;
+    sWarpPadAwaitRelease = FALSE;
+    sWarpPadHasAnchor = FALSE;
+    sWarpPadReleaseSoundPending = FALSE;
+    sStairWarpRecall = FALSE;
+    sSpinTileRecall = FALSE;
+    sSpinStopHasAnchor = FALSE;
+    sSurfReturnAwaitStep = FALSE;
+    sSurfReturnHasAnchor = FALSE;
+    sSurfReleaseSoundPending = FALSE;
+    sResumeFromSpecialMovement = FALSE;
+    sHealingRecallState = FOLLOWER_HEAL_IDLE;
+    sHealingReleaseSoundPending = FALSE;
+    sBikeReleaseSoundPending = FALSE;
+    sScriptedMovementState = FOLLOWER_SCRIPT_IDLE;
+    sLeagueScriptFollowing = FALSE;
+    sHallOfFameRecallActive = FALSE;
+    sPreDisplaySpawn = FALSE;
+    sBattlePaletteGuardFrames = 0;
+    sBattlePaletteSettledFrames = 0;
+    sInteractionActive = FALSE;
+    Follower_ClearTrail();
+    sHasLastPosition = FALSE;
+    sAwaitingSafeSpawn = FALSE;
+    sPaletteRefreshAfterLoad = TRUE;
+
+    // Prefer the true tile behind the player. If that tile is obstructed,
+    // the existing delayed-spawn logic waits for the next vacated safe tile;
+    // it never puts the Pokemon on the player, a door, or an arbitrary side.
+    Follower_Update(&gObjectEvents[playerId]);
+}
+
 static bool8 Follower_IsSafeSpawnTile(s16 x, s16 y)
 {
     u8 otherObjectId;
@@ -457,6 +554,21 @@ static bool8 Follower_IsSafeDoorReturnTile(s16 x, s16 y)
     return MetatileBehavior_IsWarpDoor(behavior)
         || MetatileBehavior_IsWarpDoor_2(behavior)
         || MetatileBehavior_IsNonAnimDoor(behavior);
+}
+
+// Viridian Gym's exterior has a one-tile-wide landing between the exit
+// warp at (36, 10) and an impassable strip at y=12 (ViridianCity map.json
+// and layout). A follower drawn at the warp or its immediate landing visually
+// stacks with the entrance facade. The map grid adds seven border tiles to
+// map.json coordinates. Leave the scripted exit and player movement untouched;
+// use the first later player-vacated walkway tile instead.
+static bool8 Follower_IsViridianGymExteriorThreshold(u8 mapNum, u8 mapGroup,
+                                                    s16 x, s16 y)
+{
+    return mapNum == MAP_NUM(VIRIDIAN_CITY)
+        && mapGroup == MAP_GROUP(VIRIDIAN_CITY)
+        && x == 36 + 7
+        && (y == 10 + 7 || y == 11 + 7);
 }
 
 // Choose a safe adjacent tile without changing the player's movement trail.
@@ -580,6 +692,54 @@ static u16 Follower_GetLeadSpecies(bool8 *isShiny)
     *isShiny = IsMonShiny(&gPlayerParty[slot]);
 #endif
     return GetMonData(&gPlayerParty[slot], MON_DATA_SPECIES, NULL);
+}
+
+// The follower is the first non-Egg Kanto Pokémon in the party, which is not
+// always the first battle-ready Pokémon. Record its party slot only when its
+// overworld sprite actually exists and is visible before battle transitions.
+void Follower_PrepareBattleEntry(void)
+{
+    u8 objectId;
+    u8 partyIndex;
+    struct ObjectEvent *follower;
+
+    sBattleEntryFollowerPartyIndex = 0;
+    if (gBattleTypeFlags & (BATTLE_TYPE_LINK | BATTLE_TYPE_DOUBLE | BATTLE_TYPE_MULTI
+                          | BATTLE_TYPE_SAFARI | BATTLE_TYPE_OLD_MAN_TUTORIAL
+                          | BATTLE_TYPE_POKEDUDE | BATTLE_TYPE_BATTLE_TOWER
+                          | BATTLE_TYPE_RECORDED | BATTLE_TYPE_INGAME_PARTNER))
+        return;
+
+    partyIndex = Follower_GetLeadPartyIndex();
+    if (partyIndex >= PARTY_SIZE || sFollowerSpecies == SPECIES_NONE
+     || GetMonData(&gPlayerParty[partyIndex], MON_DATA_HP) == 0
+     || GetMonData(&gPlayerParty[partyIndex], MON_DATA_SPECIES) != sFollowerSpecies)
+        return;
+
+    if (TryGetObjectEventIdByLocalIdAndMap(FOLLOWER_LOCAL_ID,
+                                          gSaveBlock1Ptr->location.mapNum,
+                                          gSaveBlock1Ptr->location.mapGroup,
+                                          &objectId))
+        return;
+    if (objectId >= OBJECT_EVENTS_COUNT)
+        return;
+
+    follower = &gObjectEvents[objectId];
+    if (!follower->active || follower->invisible
+     || follower->graphicsId != OBJ_EVENT_GFX_FOLLOWER
+     || follower->spriteId >= MAX_SPRITES
+     || gSprites[follower->spriteId].invisible)
+        return;
+
+    sBattleEntryFollowerPartyIndex = partyIndex + 1;
+}
+
+bool8 Follower_TakeBattleEntrySlide(u8 partyIndex)
+{
+    bool8 eligible = (partyIndex < PARTY_SIZE && (partyIndex + 1) == sBattleEntryFollowerPartyIndex);
+    // Always consume the snapshot, including if a different Pokémon is sent.
+    sBattleEntryFollowerPartyIndex = 0;
+    return eligible;
 }
 
 // Only the dedicated follower OBJ palette slot changes for shiny Pokémon.
@@ -811,6 +971,8 @@ void Follower_BeginScriptedPlayerMovement(void)
     // If a cutscene takes over before the first post-battle step, the
     // normal scripted-movement recall replaces the battle-specific latch.
     sBattleRecallAwaitStep = FALSE;
+    sGymRematchReturnPending = FALSE;
+    sWildBattleReturnPending = FALSE;
     sScriptedMovementState = FOLLOWER_SCRIPT_MOVING;
     Follower_ClearTrail();
     sHasLastPosition = FALSE;
@@ -861,6 +1023,8 @@ u16 Follower_BeginHallOfFameRecall(void)
     sLeagueScriptFollowing = FALSE;
     sScriptedMovementState = FOLLOWER_SCRIPT_IDLE;
     sBattleRecallAwaitStep = FALSE;
+    sGymRematchReturnPending = FALSE;
+    sWildBattleReturnPending = FALSE;
     sAwaitingSafeSpawn = FALSE;
     sHasLastPosition = FALSE;
     Follower_ClearTrail();
@@ -940,6 +1104,46 @@ void Follower_AfterSurfDismount(void)
 void Follower_NotifyBattleReturn(void)
 {
     sBattleReturnPending = TRUE;
+    sGymRematchReturnPending = FALSE;
+    sWildBattleReturnPending = FALSE;
+}
+
+void Follower_NotifyGymRematchReturn(void)
+{
+    Follower_NotifyBattleReturn();
+    sGymRematchReturnPending = TRUE;
+}
+
+void Follower_NotifyWildBattleReturn(void)
+{
+    Follower_NotifyBattleReturn();
+    sWildBattleReturnPending = TRUE;
+}
+
+// A player can enter a Pokemon Center immediately after Fly or field-move
+// Teleport, before the first voluntary destination step has released the
+// follower. A subsequent warp must replace that OLD arrival handoff, not
+// stack its pending latch with the new indoor/outdoor warp release.
+// Do not cancel a travel effect still in flight: its own warp/map load is
+// part of the same journey, and the end callback must remain authoritative.
+static void Follower_CancelCompletedTravelHandoffForWarp(void)
+{
+    if ((sFlyReturnAwaitStep && !sFlyRecallActive)
+     || (sFieldTravelAwaitStep && !sFieldTravelRecallActive))
+        sInterruptedTravelBuildingEntry = TRUE;
+
+    if (sFlyReturnAwaitStep && !sFlyRecallActive)
+    {
+        sFlyReturnAwaitStep = FALSE;
+        sFlyReturnHasAnchor = FALSE;
+        sFlyReleaseSoundPending = FALSE;
+    }
+    if (sFieldTravelAwaitStep && !sFieldTravelRecallActive)
+    {
+        sFieldTravelAwaitStep = FALSE;
+        sFieldTravelHasAnchor = FALSE;
+        sFieldTravelReleaseSoundPending = FALSE;
+    }
 }
 
 // Emerald-style ordinary door handoff. The follower stays hidden across the
@@ -950,6 +1154,11 @@ void Follower_BeginDoorWarp(void)
 {
     if (QL_IS_PLAYBACK_STATE || sStairWarpRecall)
         return;
+    Follower_CancelCompletedTravelHandoffForWarp();
+    // If the player left the previous map before its first safe step,
+    // the NEW building-exit handoff takes ownership of the release.
+    sSafariWarpAwaitStep = FALSE;
+    sSafariWarpHasAnchor = FALSE;
     sBikeReleaseSoundPending = FALSE;
     sDoorWarpRecall = TRUE;
     sDoorRecallHasAnchor = FALSE;
@@ -1087,6 +1296,7 @@ void Follower_BeginRearOnlyWarp(void)
     // Quest Log playback reconstructs its own movement and follower state.
     if (QL_IS_PLAYBACK_STATE)
         return;
+    Follower_CancelCompletedTravelHandoffForWarp();
     sSafariWarpAwaitStep = TRUE;
     sSafariWarpHasAnchor = FALSE;
     sDoorWarpRecall = FALSE;
@@ -1435,6 +1645,62 @@ void Follower_RefreshPalette(void)
     {
         UpdateSpritePaletteWithWeather(FOLLOWER_PALETTE_SLOT);
     }
+}
+
+// Quest Log B-skip returns to field control quickly, sometimes before its
+// dynamic follower sprite is initialized. Only repair an actual active sprite.
+// A missing/not-yet-ready sprite must NOT consume or cancel the repair.
+static bool8 Follower_GetQuestLogSkipSpriteId(u8 *spriteId)
+{
+    u8 followerId;
+
+    if (sQuestLogSkipPaletteFrames == 0 || QL_IS_PLAYBACK_STATE
+     || gGlobalFieldTintMode != QL_TINT_NONE
+     || gPaletteFade.active || !IsWeatherNotFadingIn())
+        return FALSE;
+    if (sFollowerSpecies == SPECIES_NONE
+     || TryGetObjectEventIdByLocalIdAndMap(FOLLOWER_LOCAL_ID,
+                                           gSaveBlock1Ptr->location.mapNum,
+                                           gSaveBlock1Ptr->location.mapGroup,
+                                           &followerId)
+     || followerId >= OBJECT_EVENTS_COUNT
+     || !gObjectEvents[followerId].active
+     || gObjectEvents[followerId].graphicsId != OBJ_EVENT_GFX_FOLLOWER
+     || gObjectEvents[followerId].spriteId >= MAX_SPRITES)
+        return FALSE;
+
+    *spriteId = gObjectEvents[followerId].spriteId;
+    return TRUE;
+}
+
+void Follower_ArmQuestLogSkipPaletteRepair(void)
+{
+    sQuestLogSkipPaletteFrames = FOLLOWER_QUEST_LOG_SKIP_PALETTE_FRAMES;
+}
+
+// OAM's palette number is separate from the palette's colour buffers. The
+// previous repairs restored colours in slot 11 but never verified that the
+// follower *draws* from slot 11. Fix this before BuildOamBuffer copies OAM.
+void Follower_RepairQuestLogSkipSpriteSlot(void)
+{
+    u8 spriteId;
+    if (Follower_GetQuestLogSkipSpriteId(&spriteId))
+        gSprites[spriteId].oam.paletteNum = FOLLOWER_PALETTE_SLOT;
+}
+
+// Run after UpdatePaletteFade and before VBlank. Only ready/visible followers
+// count toward the four settled palette repairs. There is no work after the
+// handoff completes, and the ordinary Quest Log playback path is untouched.
+void Follower_RepairQuestLogSkipPalette(void)
+{
+    u8 spriteId;
+    if (!Follower_GetQuestLogSkipSpriteId(&spriteId))
+        return;
+
+    gSprites[spriteId].oam.paletteNum = FOLLOWER_PALETTE_SLOT;
+    Follower_RefreshPalette();
+    sPaletteRefreshAfterLoad = FALSE;
+    sQuestLogSkipPaletteFrames--;
 }
 
 // Object OAM is copied by BuildOamBuffer before the final palette processing.
@@ -2372,13 +2638,19 @@ void Follower_Update(struct ObjectEvent *player)
                     sDoorRecallAnchorY = player->currentCoords.y;
                     return;
                 }
-                if (player->currentCoords.x == sDoorRecallAnchorX
+                // A travel arrival interrupted by a Center visit must not
+                // materialize the follower ON the building's door graphic.
+                // Wait for the player's first real outdoor step, using only
+                // the last vacated, non-door tile behind the player.
+                if (!doorRecallFirstSpawn
+                 && player->currentCoords.x == sDoorRecallAnchorX
                  && player->currentCoords.y == sDoorRecallAnchorY)
-                    return; // Exited the building, but no manual step yet.
+                    return; // Normal exits still wait for a manual step.
                 // Exactly one adjacent, player-controlled tile movement.
                 // Held DOWN begins that step without an intervening idle
                 // frame. The vacated tile is above the south-facing player.
-                if (!((player->currentCoords.x == sDoorRecallAnchorX
+                if (!doorRecallFirstSpawn
+                 && !((player->currentCoords.x == sDoorRecallAnchorX
                     && (player->currentCoords.y == sDoorRecallAnchorY + 1
                      || player->currentCoords.y == sDoorRecallAnchorY - 1))
                    || (player->currentCoords.y == sDoorRecallAnchorY
@@ -2389,11 +2661,41 @@ void Follower_Update(struct ObjectEvent *player)
                     sDoorRecallAnchorY = player->currentCoords.y;
                     return;
                 }
-                if (!Follower_IsSafeDoorReturnTile(sDoorRecallAnchorX,
-                                                   sDoorRecallAnchorY))
+                // The Viridian Gym exterior is a narrow raised landing. A
+                // normal gym exit (not just an interrupted Fly/Teleport) must
+                // never place the follower on the facade or doorstep. Keep
+                // re-anchoring until the player vacates an ordinary walkway
+                // tile; no side/front teleport and no extra per-frame scan.
+                if (Follower_IsViridianGymExteriorThreshold(mapNum, mapGroup,
+                                                              sDoorRecallAnchorX,
+                                                              sDoorRecallAnchorY))
                 {
-                    // Keep the release queued if the doorway is blocked.
-                    // Never use the normal front/side adjacent fallback.
+                    sDoorRecallAnchorX = player->currentCoords.x;
+                    sDoorRecallAnchorY = player->currentCoords.y;
+                    return;
+                }
+                if (sInterruptedTravelBuildingEntry)
+                {
+                    u8 behavior = MapGridGetMetatileBehaviorAt(sDoorRecallAnchorX,
+                                                                sDoorRecallAnchorY);
+                    // An outdoor warp threshold may be passable, but drawing
+                    // the follower there overlaps the Pokemon Center door.
+                    // Require an ordinary empty tile, with no warp-door art.
+                    if (!Follower_IsSafeSpawnTile(sDoorRecallAnchorX, sDoorRecallAnchorY)
+                     || MetatileBehavior_IsWarpDoor(behavior)
+                     || MetatileBehavior_IsWarpDoor_2(behavior)
+                     || MetatileBehavior_IsNonAnimDoor(behavior))
+                    {
+                        sDoorRecallAnchorX = player->currentCoords.x;
+                        sDoorRecallAnchorY = player->currentCoords.y;
+                        return;
+                    }
+                }
+                else if (!Follower_IsSafeDoorReturnTile(sDoorRecallAnchorX,
+                                                        sDoorRecallAnchorY))
+                {
+                    // Preserve regular door behavior; retry if the tile is
+                    // obstructed rather than relocating beside the player.
                     sDoorRecallAnchorX = player->currentCoords.x;
                     sDoorRecallAnchorY = player->currentCoords.y;
                     return;
@@ -2483,26 +2785,27 @@ void Follower_Update(struct ObjectEvent *player)
         // Restore on that first step, not after its animation has finished:
         // the saved anchor is the tile just vacated by the player. Dialogue,
         // scripted movement and map transitions remain gated above.
-        // League trainers keep Red stationary for their closing dialogue.
-        // In these rooms only, permit a safe rear-tile return immediately
-        // AFTER the script and post-battle fade have finished. Elsewhere the
-        // established first-manual-step-only battle return is unchanged.
-        if (Follower_IsLeagueScriptMap()
-         && !QL_IS_PLAYBACK_STATE && !gPaletteFade.active
-         && IsWeatherNotFadingIn()
-         && gPlayerAvatar.tileTransitionState != T_TILE_TRANSITION
-         && !ObjectEventIsHeldMovementActive(player)
-         && player->facingDirection >= DIR_SOUTH
-         && player->facingDirection <= DIR_EAST)
+        // League, Gym rematch and ordinary wild battles can restore on the
+        // safe rear tile once field control and palette/weather fades settle.
+        // Ordinary trainers retain the first-manual-step return policy.
+        if (Follower_IsLeagueScriptMap() || sGymRematchReturnPending || sWildBattleReturnPending)
         {
-            x = player->currentCoords.x;
-            y = player->currentCoords.y;
-            MoveCoords(GetOppositeDirection(player->facingDirection), &x, &y);
-            if (Follower_IsSafeSpawnTile(x, y))
+            if (!QL_IS_PLAYBACK_STATE && !gPaletteFade.active
+             && IsWeatherNotFadingIn()
+             && gPlayerAvatar.tileTransitionState != T_TILE_TRANSITION
+             && !ObjectEventIsHeldMovementActive(player)
+             && player->facingDirection >= DIR_SOUTH
+             && player->facingDirection <= DIR_EAST)
             {
-                sBattleRecallAnchorX = x;
-                sBattleRecallAnchorY = y;
-                battleRecallFirstSpawn = TRUE;
+                x = player->currentCoords.x;
+                y = player->currentCoords.y;
+                MoveCoords(GetOppositeDirection(player->facingDirection), &x, &y);
+                if (Follower_IsSafeSpawnTile(x, y))
+                {
+                    sBattleRecallAnchorX = x;
+                    sBattleRecallAnchorY = y;
+                    battleRecallFirstSpawn = TRUE;
+                }
             }
         }
         if (!battleRecallFirstSpawn
@@ -2622,6 +2925,9 @@ void Follower_Update(struct ObjectEvent *player)
                           x, y, player->currentElevation);
         if (objectId != OBJECT_EVENTS_COUNT)
         {
+            // A successful spawn completes a deferred interrupted-travel
+            // handoff, including normal indoor steps and building exits.
+            sInterruptedTravelBuildingEntry = FALSE;
             // Play only on the actual post-healing materialisation, never
             // from the Pokemon Center exit/warp callback.
             if (sHealingReleaseSoundPending)
@@ -2770,7 +3076,11 @@ void Follower_Update(struct ObjectEvent *player)
             sDoorRecallAnchorY = player->currentCoords.y;
         }
         if (battleRecallFirstSpawn && objectId != OBJECT_EVENTS_COUNT)
+        {
             sBattleRecallAwaitStep = FALSE;
+            sGymRematchReturnPending = FALSE;
+            sWildBattleReturnPending = FALSE;
+        }
         else if (battleRecallFirstSpawn)
         {
             sBattleRecallAnchorX = player->currentCoords.x;

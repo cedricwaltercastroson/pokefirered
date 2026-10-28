@@ -382,9 +382,40 @@ int main(void)
     mockSave.location.mapNum = 1;
     mockSave.location.mapGroup = 1;
 
+    // v0.9.0.3.22: a B-skipped Quest Log can reach the field with no
+    // follower sprite yet. The repair must wait until one actually exists;
+    // v0.9.0.3.21 incorrectly cancelled it immediately in this state.
+    before = mockPaletteLoads;
+    Follower_ArmQuestLogSkipPaletteRepair();
+    Follower_RepairQuestLogSkipSpriteSlot();
+    Follower_RepairQuestLogSkipPalette();
+    assert(mockPaletteLoads == before);
     Follower_Update(player);
     assert(gObjectEvents[1].active);
     assert(gObjectEvents[1].currentCoords.x == 9);
+    {
+        unsigned i;
+        // Palette colours in slot 11 alone cannot repair a sprite which is
+        // drawing from another OBJ slot. Correct its actual OAM paletteNum
+        // before BuildOamBuffer, then repair the displayed colours.
+        for (i = 0; i < 4; i++)
+        {
+            u8 spriteId = gObjectEvents[1].spriteId;
+            unsigned prior = mockPaletteLoads;
+            gSprites[spriteId].oam.paletteNum = 3;
+            gPlttBufferFaded[0x1B1] = 0;
+            Follower_RepairQuestLogSkipSpriteSlot();
+            assert(gSprites[spriteId].oam.paletteNum == 11);
+            Follower_RepairQuestLogSkipPalette();
+            assert(mockPaletteLoads == prior + 1);
+            assert(gPlttBufferFaded[0x1B1] == gPlttBufferUnfaded[0x1B1]);
+        }
+        // No permanent palette work once the four *ready* frames complete.
+        before = mockPaletteLoads;
+        for (i = 0; i < 90; i++)
+            Follower_RepairQuestLogSkipPalette();
+        assert(mockPaletteLoads == before);
+    }
     // The next unfaded overworld update is the post-load palette repair.
     Follower_Update(player);
     // Changing shiny status for the same species swaps only the OBJ palette,
@@ -1729,6 +1760,148 @@ int main(void)
     assert(gObjectEvents[1].currentCoords.x == 75);
     assert(gObjectEvents[1].currentCoords.y == 76);
 
+    // v0.9.0.3.24: direct Gym Leader rematches must behave like the League:
+    // only after the trainer's script and fades release the player, respawn
+    // behind Red without demanding an otherwise pointless manual step.
+    Follower_ResetForMapLoad();
+    mockSave.location.mapNum = MAP_NUM(PEWTER_CITY_GYM);
+    mockSave.location.mapGroup = MAP_GROUP(PEWTER_CITY_GYM);
+    gObjectEvents[1].active = FALSE;
+    player->currentCoords.x = 62;
+    player->currentCoords.y = 62;
+    player->facingDirection = DIR_NORTH;
+    gPlayerAvatar.tileTransitionState = T_NOT_MOVING;
+    player->heldMovementActive = FALSE;
+    mockWeatherFading = FALSE;
+    mockScript1Active = FALSE;
+    mockScriptLocked = FALSE;
+    Follower_Update(player);
+    assert(gObjectEvents[1].active);
+    Follower_NotifyGymRematchReturn();
+    Follower_PrimeForOverworldDisplay();
+    assert(!gObjectEvents[1].active);
+    mockScript1Active = TRUE;
+    mockScriptLocked = TRUE;
+    Follower_Update(player);
+    assert(!gObjectEvents[1].active); // Gym victory dialogue still open.
+    mockScript1Active = FALSE;
+    mockScriptLocked = FALSE;
+    gPaletteFade.active = TRUE;
+    Follower_Update(player);
+    assert(!gObjectEvents[1].active); // Fade still in progress.
+    gPaletteFade.active = FALSE;
+    mockWeatherFading = TRUE;
+    Follower_Update(player);
+    assert(!gObjectEvents[1].active); // Weather fade still in progress.
+    mockWeatherFading = FALSE;
+    Follower_Update(player); // No player step required, like the League.
+    assert(gObjectEvents[1].active);
+    assert(gObjectEvents[1].currentCoords.x == 62);
+    assert(gObjectEvents[1].currentCoords.y == 63);
+
+    // Gym rematch: obstructed rear waits rather than jumping beside trainer.
+    Follower_NotifyGymRematchReturn();
+    Follower_PrimeForOverworldDisplay();
+    assert(!gObjectEvents[1].active);
+    mockBlockedX = 62;
+    mockBlockedY = 63;
+    Follower_Update(player);
+    assert(!gObjectEvents[1].active);
+    player->currentCoords.y = 61;
+    Follower_Update(player); // Vacated (62,62) is safe.
+    assert(gObjectEvents[1].active);
+    assert(gObjectEvents[1].currentCoords.x == 62);
+    assert(gObjectEvents[1].currentCoords.y == 62);
+    mockBlockedX = -999;
+    mockBlockedY = -999;
+
+    // v0.9.0.3.25: after an ordinary wild encounter the follower returns
+    // behind Red as soon as field control and palette/weather fades settle.
+    // This must NOT rely on any player movement, including in tall grass.
+    Follower_ResetForMapLoad();
+    mockSave.location.mapNum = MAP_NUM(ROUTE1);
+    mockSave.location.mapGroup = MAP_GROUP(ROUTE1);
+    gObjectEvents[1].active = FALSE;
+    player->currentCoords.x = 56;
+    player->currentCoords.y = 56;
+    player->facingDirection = DIR_EAST;
+    gPlayerAvatar.tileTransitionState = T_NOT_MOVING;
+    player->heldMovementActive = FALSE;
+    mockScript1Active = FALSE;
+    mockScriptLocked = FALSE;
+    mockWeatherFading = FALSE;
+    gPaletteFade.active = FALSE;
+    Follower_Update(player);
+    assert(gObjectEvents[1].active);
+    Follower_NotifyWildBattleReturn();
+    Follower_PrimeForOverworldDisplay();
+    assert(!gObjectEvents[1].active);
+    mockScript1Active = TRUE;
+    mockScriptLocked = TRUE;
+    Follower_Update(player);
+    assert(!gObjectEvents[1].active);
+    mockScript1Active = FALSE;
+    mockScriptLocked = FALSE;
+    gPaletteFade.active = TRUE;
+    Follower_Update(player);
+    assert(!gObjectEvents[1].active);
+    gPaletteFade.active = FALSE;
+    mockWeatherFading = TRUE;
+    Follower_Update(player);
+    assert(!gObjectEvents[1].active);
+    mockWeatherFading = FALSE;
+    Follower_Update(player); // Exactly the same player tile; no D-pad input.
+    assert(gObjectEvents[1].active);
+    assert(gObjectEvents[1].currentCoords.x == 55);
+    assert(gObjectEvents[1].currentCoords.y == 56);
+
+    // If a rear tile is obstructed, the wild return must wait for the first
+    // player-vacated tile instead of spawning atop another NPC or to the side.
+    Follower_NotifyWildBattleReturn();
+    Follower_PrimeForOverworldDisplay();
+    assert(!gObjectEvents[1].active);
+    mockBlockedX = 55;
+    mockBlockedY = 56;
+    Follower_Update(player);
+    assert(!gObjectEvents[1].active);
+    player->currentCoords.x = 57;
+    Follower_Update(player);
+    assert(gObjectEvents[1].active);
+    assert(gObjectEvents[1].currentCoords.x == 56);
+    assert(gObjectEvents[1].currentCoords.y == 56);
+    mockBlockedX = -999;
+    mockBlockedY = -999;
+
+    // A following ordinary trainer battle must reset the wild-only latch.
+    Follower_NotifyBattleReturn();
+    Follower_PrimeForOverworldDisplay();
+    assert(!gObjectEvents[1].active);
+    Follower_Update(player); // Stationary: not the wild return any more.
+    assert(!gObjectEvents[1].active);
+    player->currentCoords.x = 58;
+    Follower_Update(player);
+    assert(gObjectEvents[1].active);
+    assert(gObjectEvents[1].currentCoords.x == 57);
+
+    // A normal trainer in the same Gym must keep the original step-only return.
+    Follower_ResetForMapLoad();
+    mockSave.location.mapNum = MAP_NUM(PEWTER_CITY_GYM);
+    mockSave.location.mapGroup = MAP_GROUP(PEWTER_CITY_GYM);
+    gObjectEvents[1].active = FALSE;
+    player->currentCoords.x = 62;
+    player->currentCoords.y = 61;
+    player->facingDirection = DIR_NORTH;
+    Follower_Update(player);
+    Follower_NotifyBattleReturn();
+    Follower_PrimeForOverworldDisplay();
+    assert(!gObjectEvents[1].active);
+    Follower_Update(player);
+    assert(!gObjectEvents[1].active);
+    player->currentCoords.y = 60;
+    Follower_Update(player);
+    assert(gObjectEvents[1].active);
+    assert(gObjectEvents[1].currentCoords.y == 61);
+
     Follower_ResetForMapLoad();
     mockSave.location.mapNum = 23;
     mockSave.location.mapGroup = 0;
@@ -2720,6 +2893,259 @@ int main(void)
         assert(gObjectEvents[1].currentCoords.y == 99);
         player->heldMovementActive = FALSE;
         gPlayerAvatar.tileTransitionState = T_NOT_MOVING;
+    }
+    // v0.9.0.3.19: Fly/field Teleport -> Pokemon Center -> immediate exit.
+    // The first arrival's deferred return MUST be superseded when the player
+    // starts entering the Center, even if not one outdoor tile was walked.
+    // Releasing BOTH travel and door handoffs would strand the follower or
+    // spawn it on the wrong map's tile. No hiding or forced extra steps.
+    {
+        int travel;
+        for (travel = 0; travel < 2; travel++)
+        {
+            Follower_ResetForMapLoad();
+            mockScriptLocked = FALSE;
+            mockScript1Active = FALSE;
+            gPaletteFade.active = FALSE;
+            mockWeatherFading = FALSE;
+            mockSpawnFailure = FALSE;
+            mockBlockedX = -999; mockBlockedY = -999;
+            mockWarpX = -999; mockWarpY = -999;
+            mockDoorX = -999; mockDoorY = -999;
+            gPlayerAvatar.flags = PLAYER_AVATAR_FLAG_ON_FOOT;
+            gPlayerAvatar.transitionFlags = 0;
+            gPlayerAvatar.preventStep = FALSE;
+            gPlayerAvatar.tileTransitionState = T_NOT_MOVING;
+            player->heldMovementActive = FALSE;
+            player->heldMovementFinished = FALSE;
+            player->invisible = FALSE;
+            mockSave.location.mapNum = 120 + travel * 3;
+            mockSave.location.mapGroup = 2;
+            player->currentCoords.x = 40;
+            player->currentCoords.y = 40;
+            player->facingDirection = DIR_SOUTH;
+            gObjectEvents[1].active = FALSE;
+            Follower_Update(player);
+            assert(gObjectEvents[1].active);
+
+            if (travel == 0)
+                Follower_BeginFlyRecall();
+            else
+                Follower_BeginFieldTravelRecall();
+            assert(!gObjectEvents[1].active);
+            Follower_ResetForMapLoad();
+            mockSave.location.mapNum++;
+            player->currentCoords.x = 60;
+            player->currentCoords.y = 60; // Flying/teleporting Center landing.
+            Follower_PrimeForOverworldDisplay();
+            if (travel == 1)
+                Follower_EndFieldTravelRecall();
+            Follower_Update(player);
+            assert(!gObjectEvents[1].active); // First outdoor step not taken.
+
+            // Center entrance is itself a new warp, not a delayed Fly step.
+            Follower_BeginRearOnlyWarp();
+            Follower_ResetForMapLoad();
+            mockSave.location.mapNum++;
+            player->currentCoords.x = 12;
+            player->currentCoords.y = 12;
+            Follower_PrimeForOverworldDisplay();
+            Follower_Update(player);
+            assert(!gObjectEvents[1].active);
+
+            // Leave immediately without moving one controllable indoor tile.
+            Follower_BeginBuildingExitWarp();
+            Follower_ResetForMapLoad();
+            mockSave.location.mapNum++;
+            player->currentCoords.x = 60;
+            player->currentCoords.y = 60;
+            mockScriptLocked = TRUE;
+            gPaletteFade.active = TRUE;
+            Follower_PrimeForOverworldDisplay();
+            Follower_Update(player);
+            assert(!gObjectEvents[1].active);
+            player->currentCoords.y = 61; // Engine's automatic door step.
+            player->heldMovementActive = TRUE;
+            gPlayerAvatar.tileTransitionState = T_TILE_TRANSITION;
+            Follower_Update(player);
+            assert(!gObjectEvents[1].active);
+            gPaletteFade.active = FALSE;
+            mockScriptLocked = FALSE;
+            player->heldMovementActive = FALSE;
+            gPlayerAvatar.tileTransitionState = T_NOT_MOVING;
+            Follower_EndBuildingExitWarp();
+            mockDoorX = 60; mockDoorY = 60; // Building door behind player.
+            Follower_Update(player);
+            // Finished exit animation is NOT a safe spawn point: the rear
+            // tile belongs to the Pokemon Center's door graphic.
+            assert(!gObjectEvents[1].active);
+            player->currentCoords.y = 62; // First manual tile step outdoors.
+            player->heldMovementActive = TRUE;
+            gPlayerAvatar.tileTransitionState = T_TILE_TRANSITION;
+            Follower_Update(player);
+            assert(gObjectEvents[1].active);
+            assert(gObjectEvents[1].currentCoords.x == 60);
+            assert(gObjectEvents[1].currentCoords.y == 61); // Vacated outdoor tile.
+            mockDoorX = -999; mockDoorY = -999;
+            player->heldMovementActive = FALSE;
+            gPlayerAvatar.tileTransitionState = T_NOT_MOVING;
+            Follower_Update(player);
+            assert(gObjectEvents[1].active);
+
+            // If even the first vacated tile is another door threshold,
+            // delay one more step; never use door art or a side/front tile.
+            // Reproduce a second interrupted field Teleport first so this
+            // also runs with the interrupted-travel handoff flag set.
+            Follower_BeginFieldTravelRecall();
+            Follower_ResetForMapLoad();
+            mockSave.location.mapNum++;
+            player->currentCoords.x = 60;
+            player->currentCoords.y = 60;
+            Follower_PrimeForOverworldDisplay();
+            Follower_EndFieldTravelRecall();
+            Follower_BeginRearOnlyWarp();
+            Follower_ResetForMapLoad();
+            mockSave.location.mapNum++;
+            player->currentCoords.x = 12;
+            player->currentCoords.y = 12;
+            Follower_PrimeForOverworldDisplay();
+            Follower_BeginBuildingExitWarp();
+            Follower_ResetForMapLoad();
+            mockSave.location.mapNum++;
+            player->currentCoords.x = 60;
+            player->currentCoords.y = 60;
+            player->facingDirection = DIR_SOUTH;
+            mockScriptLocked = TRUE;
+            gPaletteFade.active = TRUE;
+            Follower_PrimeForOverworldDisplay();
+            player->currentCoords.y = 61;
+            gPaletteFade.active = FALSE;
+            mockScriptLocked = FALSE;
+            Follower_EndBuildingExitWarp();
+            mockDoorX = 60; mockDoorY = 61; // Door graphic on exit tile.
+            Follower_Update(player);
+            assert(!gObjectEvents[1].active);
+            player->currentCoords.y = 62;
+            Follower_Update(player);
+            assert(!gObjectEvents[1].active); // Do not overlap door.
+            player->currentCoords.y = 63;
+            Follower_Update(player);
+            assert(gObjectEvents[1].active);
+            assert(gObjectEvents[1].currentCoords.y == 62);
+            mockDoorX = -999; mockDoorY = -999;
+        }
+    }
+    // Quest Log final scene: normal gameplay resumes without a map warp.
+    // A stale door handoff may still own the dynamic follower, leaving it
+    // absent forever. A one-time final-scene callback must clear that latch
+    // and rebuild directly behind the saved player on a safe tile.
+    {
+        Follower_ResetForMapLoad();
+        mockScriptLocked = FALSE;
+        mockScript1Active = FALSE;
+        gPaletteFade.active = FALSE;
+        mockWeatherFading = FALSE;
+        mockDoorX = -999; mockDoorY = -999;
+        mockBlockedX = -999; mockBlockedY = -999;
+        mockWarpX = -999; mockWarpY = -999;
+        gPlayerAvatar.flags = PLAYER_AVATAR_FLAG_ON_FOOT;
+        gPlayerAvatar.transitionFlags = 0;
+        gPlayerAvatar.preventStep = FALSE;
+        gPlayerAvatar.tileTransitionState = T_NOT_MOVING;
+        player->heldMovementActive = FALSE;
+        player->heldMovementFinished = FALSE;
+        player->invisible = FALSE;
+        player->facingDirection = DIR_EAST;
+        player->currentCoords.x = 80;
+        player->currentCoords.y = 80;
+        mockSave.location.mapNum = 90;
+        mockSave.location.mapGroup = 2;
+        gObjectEvents[1].active = FALSE;
+        Follower_Update(player);
+        assert(gObjectEvents[1].active);
+        Follower_BeginDoorWarp();
+        assert(!gObjectEvents[1].active);
+        gQuestLogState = QL_STATE_PLAYBACK_LAST;
+        Follower_ResumeAfterQuestLog(); // Never during active playback.
+        assert(!gObjectEvents[1].active);
+        gQuestLogState = 0;
+        Follower_ResumeAfterQuestLog(); // EndQuestLog after releasing scripts.
+        assert(gObjectEvents[1].active);
+        assert(gObjectEvents[1].currentCoords.x == 79);
+        assert(gObjectEvents[1].currentCoords.y == 80);
+        // If the rear is obstructed, do not create a side/front overlap.
+        Follower_BeginDoorWarp();
+        mockBlockedX = 79; mockBlockedY = 80;
+        Follower_ResumeAfterQuestLog();
+        assert(!gObjectEvents[1].active);
+        player->currentCoords.x = 81;
+        Follower_Update(player);
+        assert(gObjectEvents[1].active);
+        assert(gObjectEvents[1].currentCoords.x == 80);
+        assert(gObjectEvents[1].currentCoords.y == 80);
+        mockBlockedX = -999; mockBlockedY = -999;
+    }
+    // v0.9.0.3.20 Viridian Gym: fade-only exit opens onto a narrow porch.
+    // Actual city warp is (36,10), with porch (36,11), grid coords +7.
+    // The player must move sideways because (36,12) is impassable.
+    // Never spawn the follower on either entrance or porch tile.
+    {
+        mockScriptLocked = FALSE;
+        mockScript1Active = FALSE;
+        gPaletteFade.active = FALSE;
+        mockWeatherFading = FALSE;
+        mockBlockedX = -999; mockBlockedY = -999;
+        mockDoorX = -999; mockDoorY = -999;
+        gPlayerAvatar.flags = PLAYER_AVATAR_FLAG_ON_FOOT;
+        gPlayerAvatar.preventStep = FALSE;
+        gPlayerAvatar.tileTransitionState = T_NOT_MOVING;
+        player->heldMovementActive = FALSE;
+        player->heldMovementFinished = FALSE;
+        player->facingDirection = DIR_SOUTH;
+        mockSave.location.mapNum = MAP_NUM(VIRIDIAN_CITY_GYM);
+        mockSave.location.mapGroup = MAP_GROUP(VIRIDIAN_CITY_GYM);
+        player->currentCoords.x = 24;
+        player->currentCoords.y = 29;
+        Follower_ResetForMapLoad();
+        Follower_Update(player);
+        assert(gObjectEvents[1].active);
+        Follower_BeginBuildingExitWarp();
+        assert(!gObjectEvents[1].active);
+        Follower_ResetForMapLoad();
+        mockSave.location.mapNum = MAP_NUM(VIRIDIAN_CITY);
+        mockSave.location.mapGroup = MAP_GROUP(VIRIDIAN_CITY);
+        player->currentCoords.x = 43;
+        player->currentCoords.y = 17; // Gym door warp (36,10).
+        gPaletteFade.active = TRUE;
+        mockScriptLocked = TRUE;
+        mockBlockedX = 43; mockBlockedY = 17;
+        mockDoorX = 43; mockDoorY = 17;
+        Follower_PrimeForOverworldDisplay();
+        Follower_Update(player);
+        assert(!gObjectEvents[1].active);
+        mockScriptLocked = FALSE;
+        gPaletteFade.active = FALSE;
+        Follower_EndBuildingExitWarp(); // Generic fade-only exit, no auto walk.
+        Follower_Update(player);
+        assert(!gObjectEvents[1].active);
+        player->currentCoords.y = 18; // First controllable step onto porch.
+        Follower_Update(player);
+        assert(!gObjectEvents[1].active); // Never on the Gym doorway.
+        player->currentCoords.x = 42; // Can't go south: step sideways.
+        player->facingDirection = DIR_WEST;
+        Follower_Update(player);
+        assert(!gObjectEvents[1].active); // Never on the narrow porch.
+        player->currentCoords.x = 41; // Now vacated walkway is clear.
+        Follower_Update(player);
+        assert(gObjectEvents[1].active);
+        assert(gObjectEvents[1].currentCoords.x == 42);
+        assert(gObjectEvents[1].currentCoords.y == 18);
+        // No permanent suppression when the player continues walking.
+        player->currentCoords.x = 40;
+        Follower_Update(player);
+        assert(gObjectEvents[1].active);
+        mockBlockedX = -999; mockBlockedY = -999;
+        mockDoorX = -999; mockDoorY = -999;
     }
     puts("PASS: runtime follower suite including v0.8.27 non-overworld deferred warps");
     return 0;

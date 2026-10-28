@@ -206,6 +206,7 @@ VermilionCity_Gym_EventScript_SetBeamsOn:: @ 816B8EF
 	return
 
 VermilionCity_Gym_EventScript_LtSurge:: @ 816B94A
+	goto_if_set FLAG_SYS_GAME_CLEAR, VermilionCity_Gym_EventScript_AskRematch
 	famechecker FAMECHECKER_LTSURGE, FCPICKSTATE_COLORED, UpdatePickStateFromSpecialVar8005
 	trainerbattle_single TRAINER_LEADER_LT_SURGE, VermilionCity_Gym_Text_LtSurgeIntro, VermilionCity_Gym_Text_LtSurgeDefeat, VermilionCity_Gym_EventScript_DefeatedLtSurge, NO_MUSIC
 	goto_if_unset FLAG_GOT_TM34_FROM_SURGE, VermilionCity_Gym_EventScript_GiveTM34
@@ -289,3 +290,28 @@ VermilionCity_Gym_EventScript_GymStatuePostVictory:: @ 816BA9F
 	msgbox VermilionCity_Gym_Text_GymStatuePlayerWon
 	releaseall
 	end
+
+
+VermilionCity_Gym_EventScript_AskRematch::
+    lock
+    faceplayer
+    msgbox VermilionCity_Gym_Text_GymRematchIntro, MSGBOX_YESNO
+    compare VAR_RESULT, YES
+    goto_if_ne VermilionCity_Gym_EventScript_RematchDeclined
+    cleartrainerflag TRAINER_GYM_REMATCH_LT_SURGE
+    trainerbattle_single TRAINER_GYM_REMATCH_LT_SURGE, VermilionCity_Gym_Text_GymRematchIntro, VermilionCity_Gym_Text_GymRematchDefeat, VermilionCity_Gym_EventScript_RematchVictory
+    release
+    end
+
+VermilionCity_Gym_EventScript_RematchVictory::
+    compare VAR_GYM_REMATCH_LT_SURGE, 3
+    goto_if_ge VermilionCity_Gym_EventScript_RematchDeclined
+    addvar VAR_GYM_REMATCH_LT_SURGE, 1
+VermilionCity_Gym_EventScript_RematchDeclined::
+    release
+    end
+
+VermilionCity_Gym_Text_GymRematchIntro::
+    .string "Champion! Care for another battle?$"
+VermilionCity_Gym_Text_GymRematchDefeat::
+    .string "Your strength is impressive!$"

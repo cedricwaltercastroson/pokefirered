@@ -751,7 +751,16 @@
 //       only space for 25 additional trainers before trainer flag space overflows.
 //       MAX_TRAINERS_COUNT can be increased but will take up additional saveblock space
 
-#define NUM_TRAINERS                             743
+#define TRAINER_GYM_REMATCH_BROCK                  743
+#define TRAINER_GYM_REMATCH_MISTY                  744
+#define TRAINER_GYM_REMATCH_LT_SURGE               745
+#define TRAINER_GYM_REMATCH_ERIKA                  746
+#define TRAINER_GYM_REMATCH_KOGA                   747
+#define TRAINER_GYM_REMATCH_SABRINA                748
+#define TRAINER_GYM_REMATCH_BLAINE                 749
+#define TRAINER_GYM_REMATCH_GIOVANNI               750
+
+#define NUM_TRAINERS                             751
 #define MAX_TRAINERS_COUNT                       768
 
 #endif  // GUARD_CONSTANTS_OPPONENTS_H
