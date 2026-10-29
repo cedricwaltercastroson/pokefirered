@@ -54,8 +54,13 @@ oak_script = movement("PokemonLeague_ChampionsRoom_Movement_OakEnter")
 oak_path = walk(oak_start, oak_script)
 assert len(oak_path) == 8, oak_path  # Keep original pacing, same number of walking steps.
 assert oak_path[-1] == (5, 8), oak_path[-1]  # Preserve Oak's scene dialogue position.
-assert not ({player_final, follower_tile, rival_tile} & set(oak_path)), oak_path
-assert oak_path[:4] == [(6, 14), (6, 13), (6, 12), (5, 12)]  # Turn before follower.
+# In v38, restore Oak's original FireRed movement script. The shared
+# scripted-NPC guard now yields the follower before Oak crosses (6, 10).
+assert oak_path == [(6, 14), (6, 13), (6, 12), (6, 11),
+                    (6, 10), (5, 10), (5, 9), (5, 8)], oak_path
+assert follower_tile in oak_path
+assert not ({player_final, rival_tile} & set(oak_path)), oak_path
+assert "Follower_DeferNpcScriptStep(objEventId, nextMoveActionId)" in (PROJECT / "src/script_movement.c").read_text()
 
 # Check the destination tiles from the actual map layout, not guessed terrain.
 for x, y in oak_path:
@@ -70,4 +75,4 @@ assert "warp MAP_POKEMON_LEAGUE_HALL_OF_FAME, 255, 5, 12" in SCRIPT
 assert "applymovement OBJ_EVENT_ID_PLAYER, PokemonLeague_ChampionsRoom_Movement_PlayerWatchOakEnter" in SCRIPT
 assert "applymovement LOCALID_RIVAL, PokemonLeague_ChampionsRoom_Movement_RivalWatchOakEnter" in SCRIPT
 assert "applymovement LOCALID_PROF_OAK, PokemonLeague_ChampionsRoom_Movement_OakEnter" in SCRIPT
-print("PASS: Oak takes walkable aisle without stepping onto the stationary follower, player, or rival")
+print("PASS: restored original Oak route uses shared scripted-NPC follower yielding")

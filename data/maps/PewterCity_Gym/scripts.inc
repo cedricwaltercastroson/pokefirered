@@ -93,7 +93,7 @@ PewterCity_Gym_EventScript_AskRematch::
     compare VAR_RESULT, YES
     goto_if_ne PewterCity_Gym_EventScript_RematchDeclined
     cleartrainerflag TRAINER_GYM_REMATCH_BROCK
-    trainerbattle_single TRAINER_GYM_REMATCH_BROCK, PewterCity_Gym_Text_GymRematchIntro, PewterCity_Gym_Text_GymRematchDefeat, PewterCity_Gym_EventScript_RematchVictory
+    trainerbattle_single TRAINER_GYM_REMATCH_BROCK, PewterCity_Gym_Text_GymRematchBegin, PewterCity_Gym_Text_GymRematchDefeat, PewterCity_Gym_EventScript_RematchVictory
     release
     end
 
@@ -107,5 +107,7 @@ PewterCity_Gym_EventScript_RematchDeclined::
 
 PewterCity_Gym_Text_GymRematchIntro::
     .string "Champion! Care for another battle?$"
+PewterCity_Gym_Text_GymRematchBegin::
+    .string "Ready for a challenge!$"
 PewterCity_Gym_Text_GymRematchDefeat::
     .string "Your strength is impressive!$"

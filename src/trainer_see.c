@@ -3,6 +3,7 @@
 #include "event_object_movement.h"
 #include "field_effect.h"
 #include "field_player_avatar.h"
+#include "following_pokemon.h"
 #include "quest_log.h"
 #include "script.h"
 #include "task.h"
@@ -297,6 +298,7 @@ static bool8 TrainerSeeFunc_StartExclMark(u8 taskId, struct Task * task, struct 
     {
         ObjectEventGetLocalIdAndMap(trainerObj, (u8 *)&gFieldEffectArguments[0], (u8 *)&gFieldEffectArguments[1], (u8 *)&gFieldEffectArguments[2]);
         FieldEffectStart(FLDEFF_EXCLAMATION_MARK_ICON);
+        Follower_ObserveTrainerAlert((u8)(trainerObj - gObjectEvents));
         action = GetFaceDirectionMovementAction(trainerObj->facingDirection);
         ObjectEventSetHeldMovement(trainerObj, action);
         task->tFuncId++;
@@ -473,6 +475,7 @@ static bool8 TrainerSeeFunc_OffscreenAboveTrainerCameraObjMoveUp(u8 taskId, stru
     {
         ObjectEventGetLocalIdAndMap(trainerObj, (u8 *)&gFieldEffectArguments[0], (u8 *)&gFieldEffectArguments[1], (u8 *)&gFieldEffectArguments[2]);
         FieldEffectStart(FLDEFF_EXCLAMATION_MARK_ICON);
+        Follower_ObserveTrainerAlert((u8)(trainerObj - gObjectEvents));
         task->tData5 = 0;
         task->tFuncId++;
     }

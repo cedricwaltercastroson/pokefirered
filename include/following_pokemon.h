@@ -39,6 +39,9 @@ u16 Follower_BeginHallOfFameRecall(void);
 // treating the follower as a normal map NPC during cutscene choreography.
 void Follower_BeginScriptedPlayerMovement(void);
 void Follower_EndScriptedPlayerMovement(void);
+// Read-only movement cues. NEVER delay or redirect the observed NPC/Trainer.
+void Follower_ObserveTrainerAlert(u8 trainerId);
+void Follower_ObserveNpcScriptStep(u8 npcId, u8 movementActionId);
 // Fly takeoff recalls before the avatar temporarily becomes ON_FOOT.
 void Follower_BeginFlyRecall(void);
 // Bicycle item callback completes on-foot transition explicitly.
@@ -53,6 +56,8 @@ void Follower_PrimeForOverworldDisplay(void);
 void Follower_StabilizeBattleReturnPalette(void);
 void Follower_StabilizeBattleReturnSpriteSlot(void);
 void Follower_NotifyBattleReturn(void);
+// Ordinary local Trainer Battles: same safe return as Gym rematches.
+void Follower_NotifyTrainerBattleReturn(void);
 // Gym Leader rematches: return behind the player after dialogue/fade.
 void Follower_NotifyGymRematchReturn(void);
 // Ordinary local Double Trainer Battles: automatic safe post-fade return.

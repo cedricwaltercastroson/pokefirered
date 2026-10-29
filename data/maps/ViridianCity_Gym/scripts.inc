@@ -123,7 +123,7 @@ ViridianCity_Gym_EventScript_AskRematch::
     compare VAR_RESULT, YES
     goto_if_ne ViridianCity_Gym_EventScript_RematchDeclined
     cleartrainerflag TRAINER_GYM_REMATCH_GIOVANNI
-    trainerbattle_single TRAINER_GYM_REMATCH_GIOVANNI, ViridianCity_Gym_Text_GymRematchIntro, ViridianCity_Gym_Text_GymRematchDefeat, ViridianCity_Gym_EventScript_RematchVictory
+    trainerbattle_single TRAINER_GYM_REMATCH_GIOVANNI, ViridianCity_Gym_Text_GymRematchBegin, ViridianCity_Gym_Text_GymRematchDefeat, ViridianCity_Gym_EventScript_RematchVictory
     release
     end
 
@@ -137,5 +137,7 @@ ViridianCity_Gym_EventScript_RematchDeclined::
 
 ViridianCity_Gym_Text_GymRematchIntro::
     .string "Champion! Care for another battle?$"
+ViridianCity_Gym_Text_GymRematchBegin::
+    .string "Ready for a challenge!$"
 ViridianCity_Gym_Text_GymRematchDefeat::
     .string "Your strength is impressive!$"

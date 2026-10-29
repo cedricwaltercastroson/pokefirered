@@ -299,7 +299,7 @@ VermilionCity_Gym_EventScript_AskRematch::
     compare VAR_RESULT, YES
     goto_if_ne VermilionCity_Gym_EventScript_RematchDeclined
     cleartrainerflag TRAINER_GYM_REMATCH_LT_SURGE
-    trainerbattle_single TRAINER_GYM_REMATCH_LT_SURGE, VermilionCity_Gym_Text_GymRematchIntro, VermilionCity_Gym_Text_GymRematchDefeat, VermilionCity_Gym_EventScript_RematchVictory
+    trainerbattle_single TRAINER_GYM_REMATCH_LT_SURGE, VermilionCity_Gym_Text_GymRematchBegin, VermilionCity_Gym_Text_GymRematchDefeat, VermilionCity_Gym_EventScript_RematchVictory
     release
     end
 
@@ -313,5 +313,7 @@ VermilionCity_Gym_EventScript_RematchDeclined::
 
 VermilionCity_Gym_Text_GymRematchIntro::
     .string "Champion! Care for another battle?$"
+VermilionCity_Gym_Text_GymRematchBegin::
+    .string "Ready for a challenge!$"
 VermilionCity_Gym_Text_GymRematchDefeat::
     .string "Your strength is impressive!$"

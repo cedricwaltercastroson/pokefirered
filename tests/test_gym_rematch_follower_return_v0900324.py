@@ -11,7 +11,8 @@ trainer = battle.split('static void CB2_EndTrainerBattle(void)\n{', 1)[1].split(
 assert 'gTrainerBattleOpponent_A >= TRAINER_GYM_REMATCH_BROCK' in trainer
 assert 'gTrainerBattleOpponent_A <= TRAINER_GYM_REMATCH_GIOVANNI' in trainer
 assert 'Follower_NotifyGymRematchReturn();' in trainer
-assert 'Follower_NotifyBattleReturn();' in trainer
+assert 'Follower_NotifyLocalTrainerBattleReturn();' in trainer
+assert 'Follower_NotifyBattleReturn();' in battle.split('static void Follower_NotifyLocalTrainerBattleReturn(void)', 1)[1].split('}', 1)[0]
 assert 'CB2_WhiteOut' in trainer
 block = follower.split('if (sBattleRecallAwaitStep)',1)[1].split('if (!exists || species != sFollowerSpecies',1)[0]
 # Wild battles share the same post-fade return as the Gym rematch path as of v25.
@@ -25,4 +26,4 @@ for required in ('ScriptContext1_IsScriptSetUp()', 'ScriptContext2_IsEnabled()',
     assert required in block, required
 assert 'sGymRematchReturnPending = FALSE;' in follower.split('if (battleRecallFirstSpawn && objectId != OBJECT_EVENTS_COUNT)',1)[1]
 assert 'Follower_NotifyGymRematchReturn();' not in battle.split('static void CB2_EndWildBattle(void)\n{',1)[1].split('static void CB2_EndScriptedWildBattle',1)[0]
-print('PASS: Gym rematches get the League-style settled safe rear spawn; other trainers keep their existing behavior')
+print('PASS: Gym rematches and ordinary Trainers share the League-style safe post-text follower return')

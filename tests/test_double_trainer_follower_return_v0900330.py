@@ -88,7 +88,9 @@ static void Follower_NotifyGymRematchReturn(void)
 }
 '''
 
-code = '\n\n'.join((extract(follower, 'Follower_NotifyDoubleTrainerBattleReturn'),
+code = '\n\n'.join((extract(follower, 'Follower_NotifyTrainerBattleReturn'),
+                   extract(follower, 'Follower_NotifyDoubleTrainerBattleReturn'),
+                   extract(setup, 'Follower_NotifyLocalTrainerBattleReturn'),
                    extract(setup, 'CB2_EndTrainerBattle'),
                    extract(setup, 'CB2_EndRematchBattle')))
 main = r'''
@@ -110,7 +112,7 @@ int main(void)
 
     reset(0, 10, 0);
     CB2_EndTrainerBattle();
-    assert(notifications==1 && lastNotification==1 && !sGymRematchReturnPending);
+    assert(notifications==1 && lastNotification==2 && sGymRematchReturnPending);
 
     reset(0, TRAINER_GYM_REMATCH_BROCK, 0);
     CB2_EndTrainerBattle();
@@ -135,17 +137,30 @@ int main(void)
     assert(notifications==1 && lastNotification==2 && sGymRematchReturnPending);
     reset(0, 10, 0);
     CB2_EndRematchBattle();
-    assert(notifications==1 && lastNotification==1 && !sGymRematchReturnPending);
+    assert(notifications==1 && lastNotification==2 && sGymRematchReturnPending);
     reset(BATTLE_TYPE_DOUBLE, 10, 1);
     CB2_EndRematchBattle();
     assert(notifications==0 && whiteouts==1);
 
     reset(BATTLE_TYPE_DOUBLE, TRAINER_SECRET_BASE, 0);
     CB2_EndTrainerBattle();
-    assert(notifications==1 && lastNotification==1 && !sGymRematchReturnPending);
+    assert(notifications==1 && lastNotification==2 && sGymRematchReturnPending);
     reset(BATTLE_TYPE_DOUBLE, TRAINER_SECRET_BASE, 0);
     CB2_EndRematchBattle();
-    assert(notifications==1 && lastNotification==1);
+    assert(notifications==1 && lastNotification==2 && sGymRematchReturnPending);
+    reset(0, 10, 0);
+    sTrainerBattleMode=TRAINER_BATTLE_EARLY_RIVAL;
+    CB2_EndTrainerBattle();
+    assert(notifications==1 && lastNotification==2 && sGymRematchReturnPending);
+    reset(0, 10, 1);
+    sTrainerBattleMode=TRAINER_BATTLE_EARLY_RIVAL;
+    sRivalBattleFlags=RIVAL_BATTLE_HEAL_AFTER;
+    CB2_EndTrainerBattle();
+    assert(notifications==1 && lastNotification==2 && sGymRematchReturnPending);
+    reset(0, 10, 1);
+    sTrainerBattleMode=TRAINER_BATTLE_EARLY_RIVAL;
+    CB2_EndTrainerBattle();
+    assert(notifications==0 && whiteouts==1);
     return 0;
 }
 '''
@@ -155,4 +170,4 @@ with tempfile.TemporaryDirectory() as tmp:
     src.write_text(harness + '\n' + code + '\n' + main)
     subprocess.run(['gcc', '-std=c99', '-O2', '-Wall', '-Wextra', '-Werror', str(src), '-o', str(out)], check=True)
     subprocess.run([str(out)], check=True)
-print('PASS: actual Double Trainer and VS Seeker end callbacks select safe stationary follower return; single/link/multi/whiteout remain unchanged')
+print('PASS: single/double/early-rival/VS Seeker Trainer callbacks select safe return; link/multi/whiteout exclusions retained')

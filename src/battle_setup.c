@@ -904,6 +904,17 @@ void StartTrainerBattle(void)
     ScriptContext1_Stop();
 }
 
+// Use the established safe stationary follower return for all local trainer
+// victories, rather than requiring one extra manual step after single battles.
+// Link, multi and in-game partner battles retain their original handoff.
+static void Follower_NotifyLocalTrainerBattleReturn(void)
+{
+    if (!(gBattleTypeFlags & (BATTLE_TYPE_LINK | BATTLE_TYPE_MULTI | BATTLE_TYPE_INGAME_PARTNER)))
+        Follower_NotifyTrainerBattleReturn();
+    else
+        Follower_NotifyBattleReturn();
+}
+
 static void CB2_EndTrainerBattle(void)
 {
     if (sTrainerBattleMode == TRAINER_BATTLE_EARLY_RIVAL)
@@ -920,7 +931,7 @@ static void CB2_EndTrainerBattle(void)
                 SetMainCallback2(CB2_WhiteOut);
                 return;
             }
-            Follower_NotifyBattleReturn();
+            Follower_NotifyLocalTrainerBattleReturn();
             SetMainCallback2(CB2_ReturnToFieldContinueScriptPlayMapMusic);
             SetBattledTrainerFlag();
             QuestLogEvents_HandleEndTrainerBattle();
@@ -928,7 +939,7 @@ static void CB2_EndTrainerBattle(void)
         else
         {
             gSpecialVar_Result = FALSE;
-            Follower_NotifyBattleReturn();
+            Follower_NotifyLocalTrainerBattleReturn();
             SetMainCallback2(CB2_ReturnToFieldContinueScriptPlayMapMusic);
             RefillMovesPlayerParty();
             SetBattledTrainerFlag();
@@ -940,7 +951,7 @@ static void CB2_EndTrainerBattle(void)
     {
         if (gTrainerBattleOpponent_A == TRAINER_SECRET_BASE)
         {
-            Follower_NotifyBattleReturn();
+            Follower_NotifyLocalTrainerBattleReturn();
             SetMainCallback2(CB2_ReturnToFieldContinueScriptPlayMapMusic);
             RefillMovesPlayerParty();
         }
@@ -950,9 +961,9 @@ static void CB2_EndTrainerBattle(void)
         }
         else
         {
-            // Gym rematches and local Double Trainer Battles return the
-            // follower on a safe rear tile once scripts/fades settle.
-            // Ordinary Single Trainer Battles still wait for a player step.
+            // All local Trainer Battles (single, double, and Gym rematches)
+            // restore the follower on a safe rear tile after scripts/fades.
+            // Other battle types keep their original callback behaviour.
             if (gTrainerBattleOpponent_A >= TRAINER_GYM_REMATCH_BROCK
              && gTrainerBattleOpponent_A <= TRAINER_GYM_REMATCH_GIOVANNI)
                 Follower_NotifyGymRematchReturn();
@@ -960,7 +971,7 @@ static void CB2_EndTrainerBattle(void)
                   && !(gBattleTypeFlags & (BATTLE_TYPE_LINK | BATTLE_TYPE_MULTI | BATTLE_TYPE_INGAME_PARTNER)))
                 Follower_NotifyDoubleTrainerBattleReturn();
             else
-                Follower_NotifyBattleReturn();
+                Follower_NotifyLocalTrainerBattleReturn();
             SetMainCallback2(CB2_ReturnToFieldContinueScriptPlayMapMusic);
             RefillMovesPlayerParty();
             SetBattledTrainerFlag();
@@ -973,7 +984,7 @@ static void CB2_EndRematchBattle(void)
 {
     if (gTrainerBattleOpponent_A == TRAINER_SECRET_BASE)
     {
-        Follower_NotifyBattleReturn();
+        Follower_NotifyLocalTrainerBattleReturn();
         SetMainCallback2(CB2_ReturnToFieldContinueScriptPlayMapMusic);
         RefillMovesPlayerParty();
     }
@@ -987,7 +998,7 @@ static void CB2_EndRematchBattle(void)
          && !(gBattleTypeFlags & (BATTLE_TYPE_LINK | BATTLE_TYPE_MULTI | BATTLE_TYPE_INGAME_PARTNER)))
             Follower_NotifyDoubleTrainerBattleReturn();
         else
-            Follower_NotifyBattleReturn();
+            Follower_NotifyLocalTrainerBattleReturn();
         SetMainCallback2(CB2_ReturnToFieldContinueScriptPlayMapMusic);
         RefillMovesPlayerParty();
         SetBattledTrainerFlag();

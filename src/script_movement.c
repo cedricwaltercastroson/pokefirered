@@ -227,6 +227,8 @@ static void ScriptMovement_TakeStep(u8 taskId, u8 moveScrId, u8 objEventId, cons
     }
     else
     {
+        if (!gObjectEvents[objEventId].isPlayer)
+            Follower_ObserveNpcScriptStep(objEventId, nextMoveActionId);
         if (!ObjectEventSetHeldMovement(&gObjectEvents[objEventId], nextMoveActionId))
         {
             movementScript++;

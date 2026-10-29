@@ -99,7 +99,7 @@ FuchsiaCity_Gym_EventScript_AskRematch::
     compare VAR_RESULT, YES
     goto_if_ne FuchsiaCity_Gym_EventScript_RematchDeclined
     cleartrainerflag TRAINER_GYM_REMATCH_KOGA
-    trainerbattle_single TRAINER_GYM_REMATCH_KOGA, FuchsiaCity_Gym_Text_GymRematchIntro, FuchsiaCity_Gym_Text_GymRematchDefeat, FuchsiaCity_Gym_EventScript_RematchVictory
+    trainerbattle_single TRAINER_GYM_REMATCH_KOGA, FuchsiaCity_Gym_Text_GymRematchBegin, FuchsiaCity_Gym_Text_GymRematchDefeat, FuchsiaCity_Gym_EventScript_RematchVictory
     release
     end
 
@@ -113,5 +113,7 @@ FuchsiaCity_Gym_EventScript_RematchDeclined::
 
 FuchsiaCity_Gym_Text_GymRematchIntro::
     .string "Champion! Care for another battle?$"
+FuchsiaCity_Gym_Text_GymRematchBegin::
+    .string "Ready for a challenge!$"
 FuchsiaCity_Gym_Text_GymRematchDefeat::
     .string "Your strength is impressive!$"

@@ -192,9 +192,9 @@ static bool8 sBattleReturnPending;
 // The coordinates track the LAST settled player tile, not an arbitrary side
 // tile, so the follower returns on the tile the player actually vacated.
 static bool8 sBattleRecallAwaitStep;
-// Gym Leader rematches and ordinary Double Trainer Battles use the League's
-// stationary rear-tile return after dialogue/fade. Single Trainer Battles
-// still wait for a player-controlled step.
+// All local Trainer Battles (including Gym rematches, ordinary Singles and
+// Doubles) use the League's safe rear-tile return after dialogue/fade.
+// Preserve the historic state name for compatibility with existing logic.
 static bool8 sGymRematchReturnPending;
 // Ordinary wild encounters use the same settled, safe rear-tile return.
 // Scripted legendary and Safari battles keep their own existing callbacks.
@@ -334,6 +334,12 @@ static u8 sScriptedMovementState;
 // Their dynamic follower must trace those steps rather than be recalled until
 // an unrelated manual step. Non-League cutscenes retain their old recall policy.
 static bool8 sLeagueScriptFollowing;
+// Ordinary cutscene walking uses the existing follower trail, not a recall.
+static bool8 sGeneralScriptFollowing;
+// NPCs and Trainer tasks NEVER wait for this state. It affects the follower only.
+static bool8 sFollowerYieldHoldTrail;
+static s16 sFollowerYieldPlayerX;
+static s16 sFollowerYieldPlayerY;
 // Recall is reserved for the Hall of Fame machine ceremony, after Red and
 // the follower finish walking in. Suppress respawn until the next map load.
 static bool8 sHallOfFameRecallActive;
@@ -398,6 +404,8 @@ void Follower_ResetForMapLoad(void)
     sHealingReleaseSoundPending = FALSE;
     sScriptedMovementState = FOLLOWER_SCRIPT_IDLE;
     sLeagueScriptFollowing = FALSE;
+    sGeneralScriptFollowing = FALSE;
+    sFollowerYieldHoldTrail = FALSE;
     sHallOfFameRecallActive = FALSE;
     sFollowerSpecies = SPECIES_NONE;
     sFollowerShiny = FALSE;
@@ -507,6 +515,8 @@ void Follower_ResumeAfterQuestLog(void)
     sBikeReleaseSoundPending = FALSE;
     sScriptedMovementState = FOLLOWER_SCRIPT_IDLE;
     sLeagueScriptFollowing = FALSE;
+    sGeneralScriptFollowing = FALSE;
+    sFollowerYieldHoldTrail = FALSE;
     sHallOfFameRecallActive = FALSE;
     sPreDisplaySpawn = FALSE;
     sBattlePaletteGuardFrames = 0;
@@ -570,6 +580,20 @@ static bool8 Follower_IsViridianGymExteriorThreshold(u8 mapNum, u8 mapGroup,
         && mapGroup == MAP_GROUP(VIRIDIAN_CITY)
         && x == 36 + 7
         && (y == 10 + 7 || y == 11 + 7);
+}
+
+// Route 5 Day Care has the same raised, one-tile-deep exterior landing as
+// Viridian Gym. The exterior door warp is (23, 25) and the passable porch
+// below it is (23, 26); the next row is impassable (Route5 map/layout).
+// Never respawn the follower on either door/facade tile. Wait until the player
+// vacates a normal walkway tile, without altering the player's exit motion.
+static bool8 Follower_IsRoute5DayCareExteriorThreshold(u8 mapNum, u8 mapGroup,
+                                                       s16 x, s16 y)
+{
+    return mapNum == MAP_NUM(ROUTE5)
+        && mapGroup == MAP_GROUP(ROUTE5)
+        && x == 23 + 7
+        && (y == 25 + 7 || y == 26 + 7);
 }
 
 // Choose a safe adjacent tile without changing the player's movement trail.
@@ -894,6 +918,7 @@ u16 Follower_EndInteraction(void)
 static void Follower_Remove(void)
 {
     sInteractionActive = FALSE;
+    sFollowerYieldHoldTrail = FALSE; // Do not carry an old sidestep through recalls.
     // Do NOT use RemoveObjectEventByLocalIdAndMap here: it attempts to set a
     // map-template flag, and dynamically spawned followers have no template.
     RemoveFollowerObjectEvent();
@@ -973,6 +998,27 @@ void Follower_BeginScriptedPlayerMovement(void)
         sDoorRecallExpectsExitStep = FALSE;
         return;
     }
+    // Facing and ordinary scripted walking must not remove the follower.
+    // Special travel, healing, Quest Log and Hall of Fame effects keep their
+    // dedicated recall/warp state. Only follow if a visible follower exists.
+    if (!QL_IS_PLAYBACK_STATE && !sHallOfFameRecallActive
+     && !sStairWarpRecall && !sFlyRecallActive && !sFieldTravelRecallActive
+     && !sWarpPadRecall && !sDoorWarpRecall && !sSpinTileRecall
+     && sHealingRecallState == FOLLOWER_HEAL_IDLE)
+    {
+        u8 id;
+        if (!TryGetObjectEventIdByLocalIdAndMap(FOLLOWER_LOCAL_ID,
+                gSaveBlock1Ptr->location.mapNum,
+                gSaveBlock1Ptr->location.mapGroup, &id)
+         && id < OBJECT_EVENTS_COUNT && gObjectEvents[id].active
+         && !gObjectEvents[id].invisible)
+        {
+            sGeneralScriptFollowing = TRUE;
+            sScriptedMovementState = FOLLOWER_SCRIPT_IDLE;
+            UnfreezeObjectEvent(&gObjectEvents[id]);
+            return;
+        }
+    }
     // If a cutscene takes over before the first post-battle step, the
     // normal scripted-movement recall replaces the battle-specific latch.
     sBattleRecallAwaitStep = FALSE;
@@ -990,6 +1036,11 @@ void Follower_BeginScriptedPlayerMovement(void)
 // before restoring the follower on a safe overworld tile.
 void Follower_EndScriptedPlayerMovement(void)
 {
+    if (sGeneralScriptFollowing)
+    {
+        sGeneralScriptFollowing = FALSE;
+        return;
+    }
     // A League sequence already used the ordinary path-trailing code. Never
     // arm deferred rear-only spawn here: doing so makes the Pokemon vanish
     // after the text until the player walks again.
@@ -1026,6 +1077,8 @@ u16 Follower_BeginHallOfFameRecall(void)
 
     sHallOfFameRecallActive = TRUE;
     sLeagueScriptFollowing = FALSE;
+    sGeneralScriptFollowing = FALSE;
+    sFollowerYieldHoldTrail = FALSE;
     sScriptedMovementState = FOLLOWER_SCRIPT_IDLE;
     sBattleRecallAwaitStep = FALSE;
     sGymRematchReturnPending = FALSE;
@@ -1108,6 +1161,7 @@ void Follower_AfterSurfDismount(void)
 // resets sprites but may preserve gObjectEvents and follower runtime state.
 void Follower_NotifyBattleReturn(void)
 {
+    sFollowerYieldHoldTrail = FALSE; // Fresh battle return owns follower position.
     sBattleReturnPending = TRUE;
     sGymRematchReturnPending = FALSE;
     sWildBattleReturnPending = FALSE;
@@ -1119,9 +1173,16 @@ void Follower_NotifyGymRematchReturn(void)
     sGymRematchReturnPending = TRUE;
 }
 
-// Local Double Trainer Battles share the League/Gym rematch safe rear-tile
-// return. Keep this distinct from the wild callback: ordinary Single Trainer
-// Battles must still use their existing step-controlled return.
+// Standard local single and rematch Trainers use the same fade-safe rear-tile
+// policy as Gym leaders and Double Trainers. The historical latch name is
+// retained so older save/transition code and existing regressions stay intact.
+void Follower_NotifyTrainerBattleReturn(void)
+{
+    Follower_NotifyGymRematchReturn();
+}
+
+// Local Double Trainer Battles share the same safe rear-tile return as
+// ordinary Trainers and Gym rematches; scripted/link callbacks remain separate.
 void Follower_NotifyDoubleTrainerBattleReturn(void)
 {
     Follower_NotifyGymRematchReturn();
@@ -1811,6 +1872,18 @@ static void Follower_ApplyHorizontalSpacing(const struct ObjectEvent *follower)
         return;
 
     sprite = &gSprites[follower->spriteId];
+    // Render the alert sidestep on its actual map tile, without drawing
+    // the follower 8 pixels back into the Trainer's approach line.
+    if (sFollowerYieldHoldTrail && gPlayerAvatar.objectEventId < OBJECT_EVENTS_COUNT)
+    {
+        const struct ObjectEvent *player = &gObjectEvents[gPlayerAvatar.objectEventId];
+        if (player->active && player->currentCoords.x == sFollowerYieldPlayerX
+         && player->currentCoords.y == sFollowerYieldPlayerY)
+        {
+            sprite->x2 = 0;
+            return;
+        }
+    }
     if (follower->facingDirection == DIR_EAST)
         sprite->x2 = -FOLLOWER_SIDE_SPACING_PIXELS;
     else if (follower->facingDirection == DIR_WEST)
@@ -1866,6 +1939,11 @@ static void Follower_DrainTrail(struct ObjectEvent *follower)
         return;
     }
 
+    // Following during scripted walking never sends the follower into a
+    // stationary NPC. The NPC itself is never delayed or rerouted.
+    if (sGeneralScriptFollowing && !Follower_IsSafeSpawnTile(next->x, next->y))
+        return;
+
     direction = Follower_DirectionTo(dx, dy);
     if (direction == DIR_NONE)
     {
@@ -1916,6 +1994,148 @@ static void Follower_DrainTrail(struct ObjectEvent *follower)
             PlaySE(SE_LEDGE);
         Follower_Dequeue();
     }
+}
+
+
+// Observer-only notification for NPC movement. It MUST NOT return a value
+// to, pause, reroute, or otherwise change the NPC's original engine task.
+// Only the follower gets a held movement, at most one tile.
+static bool8 Follower_YieldForNpc(u8 npcId, u8 direction, bool8 alert)
+{
+    struct ObjectEvent *npc, *follower, *player;
+    u8 id, dirs[4], i, best = DIR_NONE;
+    s16 fx, fy, nx, ny, tx, ty, px, py, targetX, targetY;
+    s16 score, bestScore = -32767;
+    bool8 inLine;
+    bool8 oakEnteringChampionAisle;
+
+    if (direction < DIR_SOUTH || direction > DIR_EAST || npcId >= OBJECT_EVENTS_COUNT
+     || !gObjectEvents[npcId].active || gObjectEvents[npcId].isPlayer
+     || gPlayerAvatar.objectEventId >= OBJECT_EVENTS_COUNT
+     || QL_IS_PLAYBACK_STATE || sHallOfFameRecallActive
+     || sHealingRecallState != FOLLOWER_HEAL_IDLE
+     || sStairWarpRecall || sFlyRecallActive || sFieldTravelRecallActive
+     || sWarpPadRecall || sDoorWarpRecall || sSpinTileRecall)
+        return FALSE;
+    if (TryGetObjectEventIdByLocalIdAndMap(FOLLOWER_LOCAL_ID,
+            gSaveBlock1Ptr->location.mapNum,
+            gSaveBlock1Ptr->location.mapGroup, &id) || id >= OBJECT_EVENTS_COUNT)
+        return FALSE;
+    follower = &gObjectEvents[id];
+    npc = &gObjectEvents[npcId];
+    player = &gObjectEvents[gPlayerAvatar.objectEventId];
+    if (!follower->active || follower->invisible || follower->spriteId >= MAX_SPRITES
+     || !player->active || sFollowerYieldHoldTrail
+     || (ObjectEventIsHeldMovementActive(follower)
+      && !ObjectEventClearHeldMovementIfFinished(follower)))
+        return FALSE;
+
+    fx = follower->currentCoords.x;
+    fy = follower->currentCoords.y;
+    tx = npc->currentCoords.x;
+    ty = npc->currentCoords.y;
+    px = player->currentCoords.x;
+    py = player->currentCoords.y;
+    targetX = tx;
+    targetY = ty;
+    MoveCoords(direction, &targetX, &targetY);
+    inLine = (tx == px && fx == tx
+           && fy >= (ty < py ? ty : py) && fy <= (ty > py ? ty : py))
+          || (ty == py && fy == ty
+           && fx >= (tx < px ? tx : px) && fx <= (tx > px ? tx : px));
+    if (alert)
+    {
+        if (!inLine && !(fx == targetX && fy == targetY))
+            return FALSE;
+    }
+    else if (fx != targetX || fy != targetY)
+        return FALSE;
+
+    // Oak's unchanged Champion Room entrance walks north through (6, 10),
+    // then turns WEST into (5, 10). A westward follower yield at (6, 10)
+    // would put the Pokemon on Oak's NEXT tile. Select the east aisle only
+    // for this exact encounter; Oak's script, timing and position are untouched.
+    // Object-event coordinates include the seven-tile map border.
+    oakEnteringChampionAisle = !alert && direction == DIR_NORTH
+        && npc->localId == 2  // LOCALID_PROF_OAK in ChampionsRoom scripts.inc
+        && gSaveBlock1Ptr->location.mapGroup == MAP_GROUP(POKEMON_LEAGUE_CHAMPIONS_ROOM)
+        && gSaveBlock1Ptr->location.mapNum == MAP_NUM(POKEMON_LEAGUE_CHAMPIONS_ROOM)
+        && fx == 6 + 7 && fy == 10 + 7
+        && tx == 6 + 7 && ty == 11 + 7;
+
+    // Prefer a perpendicular sidestep, never a second tile or pixel offset.
+    if (direction == DIR_NORTH || direction == DIR_SOUTH)
+    {
+        dirs[0] = oakEnteringChampionAisle ? DIR_EAST : DIR_WEST;
+        dirs[1] = oakEnteringChampionAisle ? DIR_WEST : DIR_EAST;
+        dirs[2] = DIR_NORTH; dirs[3] = DIR_SOUTH;
+    }
+    else
+    {
+        dirs[0] = DIR_NORTH; dirs[1] = DIR_SOUTH;
+        dirs[2] = DIR_WEST; dirs[3] = DIR_EAST;
+    }
+    for (i = 0; i < 4; i++)
+    {
+        nx = fx;
+        ny = fy;
+        MoveCoords(dirs[i], &nx, &ny);
+        if (!Follower_IsSafeSpawnTile(nx, ny)
+         || MetatileBehavior_IsWarpPad(MapGridGetMetatileBehaviorAt(nx, ny)))
+            continue;
+        // West is Oak's next scripted tile; never use it as fallback when
+        // the east aisle is obstructed. Do not interfere with Oak instead.
+        if (oakEnteringChampionAisle && nx == fx - 1 && ny == fy)
+            continue;
+        // A Trainer's route is fixed. Never yield onto its sight line.
+        if ((nx == px && ny == py) || (nx == tx && ny == ty)
+         || (nx == targetX && ny == targetY)
+         || (alert && ((tx == px && nx == tx
+              && ny >= (ty < py ? ty : py) && ny <= (ty > py ? ty : py))
+           || (ty == py && ny == ty
+              && nx >= (tx < px ? tx : px) && nx <= (tx > px ? tx : px)))))
+            continue;
+        score = (nx > px ? nx - px : px - nx)
+              + (ny > py ? ny - py : py - ny);
+        if (score > bestScore)
+        {
+            bestScore = score;
+            best = dirs[i];
+        }
+    }
+    if (best == DIR_NONE)
+        return FALSE; // NPC continues normally even in cramped scenes.
+    UnfreezeObjectEvent(follower);
+    if (ObjectEventSetHeldMovement(follower, GetWalkFastMovementAction(best)))
+        return FALSE;
+    sFollowerYieldHoldTrail = TRUE;
+    sFollowerYieldPlayerX = px;
+    sFollowerYieldPlayerY = py;
+    Follower_ClearTrail();
+    return TRUE;
+}
+
+void Follower_ObserveTrainerAlert(u8 trainerId)
+{
+    if (trainerId < OBJECT_EVENTS_COUNT)
+        Follower_YieldForNpc(trainerId, gObjectEvents[trainerId].facingDirection, TRUE);
+}
+
+// For ordinary scripted NPC steps, observe only the action about to execute.
+// Return nothing to the caller and never alter the NPC's movement script.
+void Follower_ObserveNpcScriptStep(u8 npcId, u8 action)
+{
+    u8 direction = DIR_NONE;
+    if (action >= MOVEMENT_ACTION_WALK_SLOW_DOWN && action <= MOVEMENT_ACTION_WALK_SLOW_RIGHT)
+        direction = action - MOVEMENT_ACTION_WALK_SLOW_DOWN + DIR_SOUTH;
+    else if (action >= MOVEMENT_ACTION_WALK_NORMAL_DOWN && action <= MOVEMENT_ACTION_WALK_NORMAL_RIGHT)
+        direction = action - MOVEMENT_ACTION_WALK_NORMAL_DOWN + DIR_SOUTH;
+    else if (action >= MOVEMENT_ACTION_WALK_FAST_DOWN && action <= MOVEMENT_ACTION_WALK_FAST_RIGHT)
+        direction = action - MOVEMENT_ACTION_WALK_FAST_DOWN + DIR_SOUTH;
+    else if (action >= MOVEMENT_ACTION_WALK_FASTEST_DOWN && action <= MOVEMENT_ACTION_WALK_FASTEST_RIGHT)
+        direction = action - MOVEMENT_ACTION_WALK_FASTEST_DOWN + DIR_SOUTH;
+    if (direction != DIR_NONE)
+        Follower_YieldForNpc(npcId, direction, FALSE);
 }
 
 bool8 Follower_IsCollisionExempt(const struct ObjectEvent *a, const struct ObjectEvent *b)
@@ -1977,7 +2197,8 @@ void Follower_Update(struct ObjectEvent *player)
     // Only the League's intentional cutscene-follow path may unfreeze its
     // follower; ordinary conversation, healing and other scripted movements
     // keep their original freeze/recall rules.
-    if (sLeagueScriptFollowing && exists && objectId < OBJECT_EVENTS_COUNT)
+    if ((sLeagueScriptFollowing || sGeneralScriptFollowing)
+     && exists && objectId < OBJECT_EVENTS_COUNT)
         UnfreezeObjectEvent(&gObjectEvents[objectId]);
 
     // The stair warp manipulates only the player sprite's pixel offsets.
@@ -2674,14 +2895,16 @@ void Follower_Update(struct ObjectEvent *player)
                     sDoorRecallAnchorY = player->currentCoords.y;
                     return;
                 }
-                // The Viridian Gym exterior is a narrow raised landing. A
-                // normal gym exit (not just an interrupted Fly/Teleport) must
-                // never place the follower on the facade or doorstep. Keep
-                // re-anchoring until the player vacates an ordinary walkway
-                // tile; no side/front teleport and no extra per-frame scan.
+                // Viridian Gym and Route 5 Day Care have narrow building
+                // landings. Never place the follower on their door facades or
+                // porches; wait for the first safely vacated outdoor walkway
+                // tile. All player warp/exit timing remains original.
                 if (Follower_IsViridianGymExteriorThreshold(mapNum, mapGroup,
                                                               sDoorRecallAnchorX,
-                                                              sDoorRecallAnchorY))
+                                                              sDoorRecallAnchorY)
+                 || Follower_IsRoute5DayCareExteriorThreshold(mapNum, mapGroup,
+                                                                sDoorRecallAnchorX,
+                                                                sDoorRecallAnchorY))
                 {
                     sDoorRecallAnchorX = player->currentCoords.x;
                     sDoorRecallAnchorY = player->currentCoords.y;
@@ -2798,9 +3021,9 @@ void Follower_Update(struct ObjectEvent *player)
         // Restore on that first step, not after its animation has finished:
         // the saved anchor is the tile just vacated by the player. Dialogue,
         // scripted movement and map transitions remain gated above.
-        // League, Gym rematch and ordinary wild battles can restore on the
-        // safe rear tile once field control and palette/weather fades settle.
-        // Ordinary trainers retain the first-manual-step return policy.
+        // League, all local Trainer Battles and ordinary wild battles can
+        // restore on the rear tile once field control and fades settle.
+        // Other encounters retain the first-manual-step fallback.
         if (Follower_IsLeagueScriptMap() || sGymRematchReturnPending || sWildBattleReturnPending)
         {
             if (!QL_IS_PLAYBACK_STATE && !gPaletteFade.active
@@ -2990,7 +3213,7 @@ void Follower_Update(struct ObjectEvent *player)
             // the field loader or Quest Log may overwrite the palette later.
             sPaletteRefreshAfterLoad = !battleRecallFirstSpawn;
             follower = &gObjectEvents[objectId];
-            if (sLeagueScriptFollowing)
+            if (sLeagueScriptFollowing || sGeneralScriptFollowing)
                 UnfreezeObjectEvent(follower);
             // An unset replay facing must not become an invalid idle anim.
             direction = player->facingDirection;
@@ -3217,9 +3440,13 @@ void Follower_Update(struct ObjectEvent *player)
         sLastPlayerY = player->currentCoords.y;
     }
 
-    // Freeze new trail dispatch until dialogue closes. A held movement that
-    // was already started is left intact rather than interrupted mid-step.
-    if (!sInteractionActive)
+    // A cue can reposition only the follower. Hold its trail until the player
+    // changes tiles; do not interfere with ANY Trainer/NPC movement timing.
+    if (sFollowerYieldHoldTrail
+     && (player->currentCoords.x != sFollowerYieldPlayerX
+      || player->currentCoords.y != sFollowerYieldPlayerY))
+        sFollowerYieldHoldTrail = FALSE;
+    if (!sInteractionActive && !sFollowerYieldHoldTrail)
         Follower_DrainTrail(follower);
     Follower_ApplyHorizontalSpacing(follower);
 }

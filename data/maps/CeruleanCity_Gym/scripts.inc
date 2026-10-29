@@ -79,7 +79,7 @@ CeruleanCity_Gym_EventScript_AskRematch::
     compare VAR_RESULT, YES
     goto_if_ne CeruleanCity_Gym_EventScript_RematchDeclined
     cleartrainerflag TRAINER_GYM_REMATCH_MISTY
-    trainerbattle_single TRAINER_GYM_REMATCH_MISTY, CeruleanCity_Gym_Text_GymRematchIntro, CeruleanCity_Gym_Text_GymRematchDefeat, CeruleanCity_Gym_EventScript_RematchVictory
+    trainerbattle_single TRAINER_GYM_REMATCH_MISTY, CeruleanCity_Gym_Text_GymRematchBegin, CeruleanCity_Gym_Text_GymRematchDefeat, CeruleanCity_Gym_EventScript_RematchVictory
     release
     end
 
@@ -93,5 +93,7 @@ CeruleanCity_Gym_EventScript_RematchDeclined::
 
 CeruleanCity_Gym_Text_GymRematchIntro::
     .string "Champion! Care for another battle?$"
+CeruleanCity_Gym_Text_GymRematchBegin::
+    .string "Ready for a challenge!$"
 CeruleanCity_Gym_Text_GymRematchDefeat::
     .string "Your strength is impressive!$"
