@@ -199,6 +199,9 @@ static bool8 sGymRematchReturnPending;
 // Ordinary wild encounters use the same settled, safe rear-tile return.
 // Scripted legendary and Safari battles keep their own existing callbacks.
 static bool8 sWildBattleReturnPending;
+// The starter's first battle returns into Blue's mandatory exit cutscene.
+// Preserve the pending follower spawn across scripted player face turns.
+static bool8 sOakLabRivalReturnPending;
 // Door entries and indoor-to-indoor warps retain the approved Emerald handoff.
 // Outdoor BUILDING exits use a separate Safari-style deferred first-step
 // handoff: the scripted southward door-exit motion is NOT a player step.
@@ -421,6 +424,7 @@ void Follower_ResetForMapLoad(void)
     {
         sGymRematchReturnPending = FALSE;
         sWildBattleReturnPending = FALSE;
+        sOakLabRivalReturnPending = FALSE;
     }
     // Door recalls must survive ResetObjectEvents, but old-map coordinates
     // must not leak into the new map. PrimeForOverworldDisplay anchors once
@@ -499,6 +503,7 @@ void Follower_ResumeAfterQuestLog(void)
     sBattleRecallAwaitStep = FALSE;
     sGymRematchReturnPending = FALSE;
     sWildBattleReturnPending = FALSE;
+    sOakLabRivalReturnPending = FALSE;
     sWarpPadRecall = FALSE;
     sWarpPadAwaitRelease = FALSE;
     sWarpPadHasAnchor = FALSE;
@@ -738,8 +743,20 @@ void Follower_PrepareBattleEntry(void)
         return;
 
     partyIndex = Follower_GetLeadPartyIndex();
-    if (partyIndex >= PARTY_SIZE || sFollowerSpecies == SPECIES_NONE
-     || GetMonData(&gPlayerParty[partyIndex], MON_DATA_HP) == 0
+    if (partyIndex >= PARTY_SIZE
+     || GetMonData(&gPlayerParty[partyIndex], MON_DATA_HP) == 0)
+        return;
+
+    // Oak's first rival fight begins immediately after choosing the starter.
+    // A valid starter is already owned but its follower may not have spawned
+    // yet during the lab's scripted positioning. This is the ONLY exception
+    // to the rule requiring an existing visible overworld follower.
+    if (gBattleTypeFlags & BATTLE_TYPE_FIRST_BATTLE)
+    {
+        sBattleEntryFollowerPartyIndex = partyIndex + 1;
+        return;
+    }
+    if (sFollowerSpecies == SPECIES_NONE
      || GetMonData(&gPlayerParty[partyIndex], MON_DATA_SPECIES) != sFollowerSpecies)
         return;
 
@@ -1019,7 +1036,15 @@ void Follower_BeginScriptedPlayerMovement(void)
             return;
         }
     }
-    // If a cutscene takes over before the first post-battle step, the
+    // Blue turns the player during his mandatory departure after Oak's
+    // first battle. Keep the pending follower return until that script has
+    // finished; the player's scripted facing is not a voluntary step.
+    // Do not modify Blue's path, timing, or the player movement script.
+    if (sOakLabRivalReturnPending && sBattleRecallAwaitStep
+     && gSaveBlock1Ptr->location.mapNum == MAP_NUM(PALLET_TOWN_PROFESSOR_OAKS_LAB)
+     && gSaveBlock1Ptr->location.mapGroup == MAP_GROUP(PALLET_TOWN_PROFESSOR_OAKS_LAB))
+        return;
+    // If another cutscene takes over before the first post-battle step, the
     // normal scripted-movement recall replaces the battle-specific latch.
     sBattleRecallAwaitStep = FALSE;
     sGymRematchReturnPending = FALSE;
@@ -1165,6 +1190,7 @@ void Follower_NotifyBattleReturn(void)
     sBattleReturnPending = TRUE;
     sGymRematchReturnPending = FALSE;
     sWildBattleReturnPending = FALSE;
+    sOakLabRivalReturnPending = FALSE;
 }
 
 void Follower_NotifyGymRematchReturn(void)
@@ -1186,6 +1212,12 @@ void Follower_NotifyTrainerBattleReturn(void)
 void Follower_NotifyDoubleTrainerBattleReturn(void)
 {
     Follower_NotifyGymRematchReturn();
+}
+
+void Follower_NotifyOakLabRivalBattleReturn(void)
+{
+    Follower_NotifyTrainerBattleReturn();
+    sOakLabRivalReturnPending = TRUE;
 }
 
 void Follower_NotifyWildBattleReturn(void)
@@ -3316,6 +3348,7 @@ void Follower_Update(struct ObjectEvent *player)
             sBattleRecallAwaitStep = FALSE;
             sGymRematchReturnPending = FALSE;
             sWildBattleReturnPending = FALSE;
+            sOakLabRivalReturnPending = FALSE;
         }
         else if (battleRecallFirstSpawn)
         {

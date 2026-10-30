@@ -14,6 +14,7 @@
 #include "battle_controllers.h"
 #include "battle_interface.h"
 #include "battle_message.h"
+#include "following_pokemon.h"
 #include "reshow_battle_screen.h"
 #include "battle_string_ids.h"
 #include "constants/songs.h"
@@ -96,6 +97,9 @@ static void SetOakOldManMonData(u8 monId);
 static void OakOldManDoMoveAnimation(void);
 static void HandleInputChooseAction(void);
 static void Task_StartSendOutAnim(u8 taskId);
+static void Task_StartOakLabFollowerBattleEntry(u8 taskId);
+static void SpriteCB_OakLabFollowerBattleSlideIn(struct Sprite *sprite);
+static void Intro_WaitForOakLabFollowerBattleSlide(void);
 
 static void (*const sOakOldManBufferCommands[CONTROLLER_CMDS_COUNT])(void) =
 {
@@ -2078,6 +2082,22 @@ static void OakOldManHandleIntroTrainerBallThrow(void)
 
     if (gBattleTypeFlags & BATTLE_TYPE_FIRST_BATTLE)
     {
+        // The opening rival battle uses this tutorial controller rather than
+        // the standard Player controller. Keep its original tutorial text,
+        // menus and timing; only replace the first ball throw when the
+        // starter is the eligible following Pokemon.
+        if (Follower_TakeBattleEntrySlide(gBattlerPartyIndexes[gActiveBattler]))
+        {
+            taskId = CreateTask(Task_StartOakLabFollowerBattleEntry, 5);
+            gTasks[taskId].data[0] = gActiveBattler;
+            gTasks[taskId].data[1] = gBattlerSpriteIds[gActiveBattler];
+            gTasks[taskId].data[2] = 0;
+            if (gBattleSpritesDataPtr->healthBoxesData[gActiveBattler].partyStatusSummaryShown)
+                gTasks[gBattlerStatusSummaryTaskId[gActiveBattler]].func = Task_HidePartyStatusSummary;
+            gBattleSpritesDataPtr->animationData->healthboxSlideInStarted = 1;
+            gBattlerControllerFuncs[gActiveBattler] = PlayerDummy;
+            return;
+        }
         SetSpritePrimaryCoordsFromSecondaryCoords(&gSprites[gBattlerSpriteIds[gActiveBattler]]);
         gSprites[gBattlerSpriteIds[gActiveBattler]].data[0] = 50;
         gSprites[gBattlerSpriteIds[gActiveBattler]].data[2] = -40;
@@ -2102,6 +2122,63 @@ static void OakOldManHandleIntroTrainerBallThrow(void)
             gTasks[gBattlerStatusSummaryTaskId[gActiveBattler]].func = Task_HidePartyStatusSummary;
         OakOldManBufferExecCompleted();
     }
+}
+
+// Use the same 18-frame trainer exit and 24-frame Pokemon entrance as
+// ordinary follower battles, but resume the Oak/tutorial controller's own
+// shiny/healthbox and help-text path. Never hand off to Player's controller.
+static void Task_StartOakLabFollowerBattleEntry(u8 taskId)
+{
+    u8 battlerId = gTasks[taskId].data[0];
+    u8 trainerSpriteId = gTasks[taskId].data[1];
+    u16 species;
+    u8 monSpriteId;
+
+    if (gTasks[taskId].data[2]++ < 18)
+    {
+        gSprites[trainerSpriteId].x2 -= 8;
+        return;
+    }
+
+    FreeSpriteOamMatrix(&gSprites[trainerSpriteId]);
+    FreeSpritePaletteByTag(GetSpritePaletteTagByPaletteNum(gSprites[trainerSpriteId].oam.paletteNum));
+    DestroySprite(&gSprites[trainerSpriteId]);
+
+    species = GetMonData(&gPlayerParty[gBattlerPartyIndexes[battlerId]], MON_DATA_SPECIES);
+    BattleLoadPlayerMonSpriteGfx(&gPlayerParty[gBattlerPartyIndexes[battlerId]], battlerId);
+    SetMultiuseSpriteTemplateToPokemon(species, GetBattlerPosition(battlerId));
+    monSpriteId = CreateSprite(&gMultiuseSpriteTemplate,
+                              GetBattlerSpriteCoord(battlerId, 2),
+                              GetBattlerSpriteDefault_Y(battlerId),
+                              GetBattlerSpriteSubpriority(battlerId));
+    gBattlerSpriteIds[battlerId] = monSpriteId;
+    gSprites[monSpriteId].data[0] = battlerId;
+    gSprites[monSpriteId].data[2] = species;
+    gSprites[monSpriteId].oam.paletteNum = battlerId;
+    StartSpriteAnim(&gSprites[monSpriteId], gBattleMonForms[battlerId]);
+    gSprites[monSpriteId].x2 = -96;
+    gSprites[monSpriteId].invisible = FALSE;
+    gSprites[monSpriteId].callback = SpriteCB_OakLabFollowerBattleSlideIn;
+    gBattleControllerData[battlerId] = CreateInvisibleSpriteWithCallback(SpriteCallbackDummy);
+    gBattlerControllerFuncs[battlerId] = Intro_WaitForOakLabFollowerBattleSlide;
+    DestroyTask(taskId);
+}
+
+static void SpriteCB_OakLabFollowerBattleSlideIn(struct Sprite *sprite)
+{
+    sprite->x2 += 4;
+    if (sprite->x2 >= 0)
+    {
+        sprite->x2 = 0;
+        sprite->callback = SpriteCallbackDummy;
+        PlayCry3(sprite->data[2], -25, 0);
+    }
+}
+
+static void Intro_WaitForOakLabFollowerBattleSlide(void)
+{
+    if (gSprites[gBattlerSpriteIds[gActiveBattler]].callback == SpriteCallbackDummy)
+        gBattlerControllerFuncs[gActiveBattler] = Intro_TryShinyAnimShowHealthbox;
 }
 
 static void StartSendOutAnim(u8 battlerId)

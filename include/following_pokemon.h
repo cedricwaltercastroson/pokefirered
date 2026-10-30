@@ -58,6 +58,8 @@ void Follower_StabilizeBattleReturnSpriteSlot(void);
 void Follower_NotifyBattleReturn(void);
 // Ordinary local Trainer Battles: same safe return as Gym rematches.
 void Follower_NotifyTrainerBattleReturn(void);
+// Oak's scripted first rival battle preserves the return through Blue's exit.
+void Follower_NotifyOakLabRivalBattleReturn(void);
 // Gym Leader rematches: return behind the player after dialogue/fade.
 void Follower_NotifyGymRematchReturn(void);
 // Ordinary local Double Trainer Battles: automatic safe post-fade return.

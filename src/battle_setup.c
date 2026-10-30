@@ -931,7 +931,12 @@ static void CB2_EndTrainerBattle(void)
                 SetMainCallback2(CB2_WhiteOut);
                 return;
             }
-            Follower_NotifyLocalTrainerBattleReturn();
+            // Route 22 also uses EARLY_RIVAL; only Oak's tutorial battle
+            // needs to preserve the return through Blue's lab departure.
+            if (gBattleTypeFlags & BATTLE_TYPE_FIRST_BATTLE)
+                Follower_NotifyOakLabRivalBattleReturn();
+            else
+                Follower_NotifyLocalTrainerBattleReturn();
             SetMainCallback2(CB2_ReturnToFieldContinueScriptPlayMapMusic);
             SetBattledTrainerFlag();
             QuestLogEvents_HandleEndTrainerBattle();
@@ -939,7 +944,12 @@ static void CB2_EndTrainerBattle(void)
         else
         {
             gSpecialVar_Result = FALSE;
-            Follower_NotifyLocalTrainerBattleReturn();
+            // Route 22 also uses EARLY_RIVAL; only Oak's tutorial battle
+            // needs to preserve the return through Blue's lab departure.
+            if (gBattleTypeFlags & BATTLE_TYPE_FIRST_BATTLE)
+                Follower_NotifyOakLabRivalBattleReturn();
+            else
+                Follower_NotifyLocalTrainerBattleReturn();
             SetMainCallback2(CB2_ReturnToFieldContinueScriptPlayMapMusic);
             RefillMovesPlayerParty();
             SetBattledTrainerFlag();

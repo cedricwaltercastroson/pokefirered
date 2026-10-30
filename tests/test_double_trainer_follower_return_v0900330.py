@@ -52,6 +52,7 @@ typedef uint32_t u32;
 #define TRAINER_GYM_REMATCH_BROCK 800
 #define TRAINER_GYM_REMATCH_GIOVANNI 807
 #define BATTLE_TYPE_DOUBLE (1u << 0)
+#define BATTLE_TYPE_FIRST_BATTLE (1u << 4)
 #define BATTLE_TYPE_LINK (1u << 1)
 #define BATTLE_TYPE_MULTI (1u << 6)
 #define BATTLE_TYPE_INGAME_PARTNER (1u << 22)
@@ -61,7 +62,7 @@ static int sTrainerBattleMode, sRivalBattleFlags;
 static u16 gTrainerBattleOpponent_A;
 static int gSpecialVar_Result, gBattleOutcome;
 static int notifications, lastNotification, whiteouts, statUpdates, questLogCalls;
-static int sBattleReturnPending, sGymRematchReturnPending, sWildBattleReturnPending;
+static int sBattleReturnPending, sGymRematchReturnPending, sWildBattleReturnPending, sOakLabRivalReturnPending;
 static void CB2_WhiteOut(void) {}
 static void CB2_ReturnToFieldContinueScriptPlayMapMusic(void) {}
 static void (*lastCallback)(void);
@@ -90,6 +91,7 @@ static void Follower_NotifyGymRematchReturn(void)
 
 code = '\n\n'.join((extract(follower, 'Follower_NotifyTrainerBattleReturn'),
                    extract(follower, 'Follower_NotifyDoubleTrainerBattleReturn'),
+                   extract(follower, 'Follower_NotifyOakLabRivalBattleReturn'),
                    extract(setup, 'Follower_NotifyLocalTrainerBattleReturn'),
                    extract(setup, 'CB2_EndTrainerBattle'),
                    extract(setup, 'CB2_EndRematchBattle')))
@@ -99,7 +101,7 @@ static void reset(int flags, int trainer, int defeated)
     gBattleTypeFlags=flags; gTrainerBattleOpponent_A=trainer; gBattleOutcome=defeated;
     sTrainerBattleMode=0; sRivalBattleFlags=0;
     notifications=0; lastNotification=0; whiteouts=0; statUpdates=0; questLogCalls=0;
-    sBattleReturnPending=sGymRematchReturnPending=sWildBattleReturnPending=0;
+    sBattleReturnPending=sGymRematchReturnPending=sWildBattleReturnPending=sOakLabRivalReturnPending=0;
     lastCallback=0;
 }
 int main(void)
@@ -148,15 +150,26 @@ int main(void)
     reset(BATTLE_TYPE_DOUBLE, TRAINER_SECRET_BASE, 0);
     CB2_EndRematchBattle();
     assert(notifications==1 && lastNotification==2 && sGymRematchReturnPending);
+    // Route 22 also uses early-rival mode, but has no tutorial flag.
     reset(0, 10, 0);
     sTrainerBattleMode=TRAINER_BATTLE_EARLY_RIVAL;
     CB2_EndTrainerBattle();
-    assert(notifications==1 && lastNotification==2 && sGymRematchReturnPending);
+    assert(notifications==1 && lastNotification==2 && sGymRematchReturnPending && !sOakLabRivalReturnPending);
+    // Only Oak's actual first battle arms the special lab cutscene latch.
+    reset(BATTLE_TYPE_FIRST_BATTLE, 10, 0);
+    sTrainerBattleMode=TRAINER_BATTLE_EARLY_RIVAL;
+    CB2_EndTrainerBattle();
+    assert(notifications==1 && lastNotification==2 && sGymRematchReturnPending && sOakLabRivalReturnPending);
     reset(0, 10, 1);
     sTrainerBattleMode=TRAINER_BATTLE_EARLY_RIVAL;
     sRivalBattleFlags=RIVAL_BATTLE_HEAL_AFTER;
     CB2_EndTrainerBattle();
-    assert(notifications==1 && lastNotification==2 && sGymRematchReturnPending);
+    assert(notifications==1 && lastNotification==2 && sGymRematchReturnPending && !sOakLabRivalReturnPending);
+    reset(BATTLE_TYPE_FIRST_BATTLE, 10, 1);
+    sTrainerBattleMode=TRAINER_BATTLE_EARLY_RIVAL;
+    sRivalBattleFlags=RIVAL_BATTLE_HEAL_AFTER;
+    CB2_EndTrainerBattle();
+    assert(notifications==1 && lastNotification==2 && sGymRematchReturnPending && sOakLabRivalReturnPending);
     reset(0, 10, 1);
     sTrainerBattleMode=TRAINER_BATTLE_EARLY_RIVAL;
     CB2_EndTrainerBattle();
