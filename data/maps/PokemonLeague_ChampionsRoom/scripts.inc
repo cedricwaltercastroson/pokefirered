@@ -68,6 +68,9 @@ PokemonLeague_ChampionsRoom_EventScript_EnterRoom:: @ 8162B76
 	setflag FLAG_DEFEATED_CHAMP
 	setflag FLAG_TEMP_4
 	msgbox PokemonLeague_ChampionsRoom_Text_PostBattle
+	@ Champion Room exception: the Pokemon returns beside Red immediately
+	@ after battle, before Oak arrives.  No slide-out or sidestep is used.
+	special Follower_ChampionRoomRestore
 	playbgm MUS_SLOW_PALLET, 0
 	addobject LOCALID_PROF_OAK
 	msgbox PokemonLeague_ChampionsRoom_Text_OakPlayer
@@ -76,11 +79,14 @@ PokemonLeague_ChampionsRoom_EventScript_EnterRoom:: @ 8162B76
 	applymovement LOCALID_RIVAL, PokemonLeague_ChampionsRoom_Movement_RivalWatchOakEnter
 	applymovement LOCALID_PROF_OAK, PokemonLeague_ChampionsRoom_Movement_OakEnter
 	waitmovement 0
+	@ Oak approached through the west aisle, leaving the follower on
+	@ Red's rear tile.  No special follower movement is needed here.
 	delay 25
+	applymovement LOCALID_PROF_OAK, Movement_WalkInPlaceFastestRight
+	waitmovement 0
 	specialvar VAR_RESULT, GetStarterSpecies
 	getspeciesname 0, VAR_RESULT
 	msgbox PokemonLeague_ChampionsRoom_Text_OakCongratulations
-	applymovement LOCALID_PROF_OAK, Movement_WalkInPlaceFastestRight
 	applymovement LOCALID_RIVAL, Movement_WalkInPlaceFastestLeft
 	waitmovement 0
 	msgbox PokemonLeague_ChampionsRoom_Text_OakImDisappointedRival
@@ -199,12 +205,14 @@ PokemonLeague_ChampionsRoom_Movement_PlayerWatchOakEnter:: @ 8162D1F
 PokemonLeague_ChampionsRoom_Movement_OakEnter:: @ 8162D2A
 	delay_16
 	delay_16
-	walk_up
+	@ From (6,15), Oak turns west at (6,11) BEFORE reaching Red's
+	@ follower tile (6,10). Same destination (5,8), same eight steps.
 	walk_up
 	walk_up
 	walk_up
 	walk_up
 	walk_left
+	walk_up
 	walk_up
 	walk_up
 	walk_in_place_fastest_down

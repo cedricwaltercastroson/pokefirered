@@ -1003,9 +1003,15 @@ void Follower_BeginScriptedPlayerMovement(void)
     {
         sLeagueScriptFollowing = TRUE;
         sScriptedMovementState = FOLLOWER_SCRIPT_IDLE;
-        // A league door/corridor arrival is now owned by the scripted path.
-        // These inherited warp/postbattle latches must not suppress its steps.
-        sBattleRecallAwaitStep = FALSE;
+        // Keep the Champion Room's post-battle return pending until Oak has
+        // finished entering and the explicit room-only restore special runs.
+        // Otherwise the first scripted face turn can respawn the follower
+        // prematurely onto Oak's route. Once restored, the normal League
+        // scripted-movement trail follows the player's exit steps.
+        if (!sBattleRecallAwaitStep
+         || gSaveBlock1Ptr->location.mapNum != MAP_NUM(POKEMON_LEAGUE_CHAMPIONS_ROOM)
+         || gSaveBlock1Ptr->location.mapGroup != MAP_GROUP(POKEMON_LEAGUE_CHAMPIONS_ROOM))
+            sBattleRecallAwaitStep = FALSE;
         sSafariWarpAwaitStep = FALSE;
         sSafariWarpHasAnchor = FALSE;
         sDoorWarpRecall = FALSE;
@@ -1076,6 +1082,81 @@ void Follower_EndScriptedPlayerMovement(void)
     }
     if (sScriptedMovementState == FOLLOWER_SCRIPT_MOVING)
         sScriptedMovementState = FOLLOWER_SCRIPT_WAIT_FOR_RELEASE;
+}
+
+// Champion Room only: restore the Pokemon directly after the rival battle,
+// BEFORE Oak enters. Oak now uses the west aisle, so the Pokemon can hold
+// Red's rear tile and follow normally through the Hall of Fame doorway.
+// There is no slide-in, side yield, or NPC wait in this callback.
+u16 Follower_ChampionRoomRestore(void)
+{
+    u8 playerId = gPlayerAvatar.objectEventId;
+    u8 followerId;
+    struct ObjectEvent *player;
+    s16 x, y;
+    bool8 shiny;
+
+    if (gSaveBlock1Ptr->location.mapNum != MAP_NUM(POKEMON_LEAGUE_CHAMPIONS_ROOM)
+     || gSaveBlock1Ptr->location.mapGroup != MAP_GROUP(POKEMON_LEAGUE_CHAMPIONS_ROOM)
+     || QL_IS_PLAYBACK_STATE || sHallOfFameRecallActive
+     || gPaletteFade.active || !IsWeatherNotFadingIn()
+     || playerId >= OBJECT_EVENTS_COUNT)
+        return FALSE;
+
+    player = &gObjectEvents[playerId];
+    if (!player->active || !player->isPlayer || player->invisible
+     || gPlayerAvatar.tileTransitionState == T_TILE_TRANSITION
+     || (ObjectEventIsHeldMovementActive(player) && !player->heldMovementFinished))
+        return FALSE;
+
+    if (!TryGetObjectEventIdByLocalIdAndMap(FOLLOWER_LOCAL_ID,
+            gSaveBlock1Ptr->location.mapNum, gSaveBlock1Ptr->location.mapGroup,
+            &followerId)
+     && followerId < OBJECT_EVENTS_COUNT
+     && gObjectEvents[followerId].active
+     && !gObjectEvents[followerId].invisible)
+    {
+        sBattleRecallAwaitStep = FALSE;
+        return TRUE;
+    }
+
+    // Do not side-spawn or sidestep for Oak: Red has completed his ten
+    // northward steps and the rear tile is (6,10), on the central aisle.
+    // Oak takes the west aisle instead of asking the Pokemon to move.
+    if (Follower_GetLeadSpecies(&shiny) == SPECIES_NONE
+     || player->facingDirection < DIR_SOUTH
+     || player->facingDirection > DIR_EAST)
+        return FALSE;
+    x = player->currentCoords.x;
+    y = player->currentCoords.y;
+    MoveCoords(GetOppositeDirection(player->facingDirection), &x, &y);
+    if (!Follower_IsSafeSpawnTile(x, y))
+        return FALSE;
+
+    // The regular battle return waits for a manual step, but Oak's post-
+    // Champion lockall script has no manual step. Restore before he arrives.
+    // Preserve League scripted trailing during the later guided exit.
+    sLeagueScriptFollowing = TRUE;
+    sScriptedMovementState = FOLLOWER_SCRIPT_IDLE;
+    sFollowerYieldHoldTrail = FALSE;
+    sBattleRecallAwaitStep = FALSE;
+    sGymRematchReturnPending = FALSE;
+    sWildBattleReturnPending = FALSE;
+    sOakLabRivalReturnPending = FALSE;
+    sHasLastPosition = FALSE;
+    sAwaitingSafeSpawn = FALSE;
+    // The normal spawn code loads the follower's palette and creates its
+    // overworld sprite without playing a send-out or slide-in animation.
+    sPreDisplaySpawn = TRUE;
+    Follower_Update(player);
+    sPreDisplaySpawn = FALSE;
+
+    return !TryGetObjectEventIdByLocalIdAndMap(FOLLOWER_LOCAL_ID,
+                gSaveBlock1Ptr->location.mapNum, gSaveBlock1Ptr->location.mapGroup,
+                &followerId)
+        && followerId < OBJECT_EVENTS_COUNT
+        && gObjectEvents[followerId].active
+        && !gObjectEvents[followerId].invisible;
 }
 
 // The Hall of Fame's Record effect begins after Oak congratulates Red.
@@ -2039,7 +2120,14 @@ static bool8 Follower_YieldForNpc(u8 npcId, u8 direction, bool8 alert)
     s16 fx, fy, nx, ny, tx, ty, px, py, targetX, targetY;
     s16 score, bestScore = -32767;
     bool8 inLine;
-    bool8 oakEnteringChampionAisle;
+
+    // Never sidestep the follower for Oak in the Champion Room: the NPC's
+    // west-aisle route avoids the rear tile and the Pokemon stays by Red.
+    if (npcId < OBJECT_EVENTS_COUNT && gObjectEvents[npcId].active
+     && gObjectEvents[npcId].localId == 2
+     && gSaveBlock1Ptr->location.mapGroup == MAP_GROUP(POKEMON_LEAGUE_CHAMPIONS_ROOM)
+     && gSaveBlock1Ptr->location.mapNum == MAP_NUM(POKEMON_LEAGUE_CHAMPIONS_ROOM))
+        return FALSE;
 
     if (direction < DIR_SOUTH || direction > DIR_EAST || npcId >= OBJECT_EVENTS_COUNT
      || !gObjectEvents[npcId].active || gObjectEvents[npcId].isPlayer
@@ -2083,23 +2171,12 @@ static bool8 Follower_YieldForNpc(u8 npcId, u8 direction, bool8 alert)
     else if (fx != targetX || fy != targetY)
         return FALSE;
 
-    // Oak's unchanged Champion Room entrance walks north through (6, 10),
-    // then turns WEST into (5, 10). A westward follower yield at (6, 10)
-    // would put the Pokemon on Oak's NEXT tile. Select the east aisle only
-    // for this exact encounter; Oak's script, timing and position are untouched.
-    // Object-event coordinates include the seven-tile map border.
-    oakEnteringChampionAisle = !alert && direction == DIR_NORTH
-        && npc->localId == 2  // LOCALID_PROF_OAK in ChampionsRoom scripts.inc
-        && gSaveBlock1Ptr->location.mapGroup == MAP_GROUP(POKEMON_LEAGUE_CHAMPIONS_ROOM)
-        && gSaveBlock1Ptr->location.mapNum == MAP_NUM(POKEMON_LEAGUE_CHAMPIONS_ROOM)
-        && fx == 6 + 7 && fy == 10 + 7
-        && tx == 6 + 7 && ty == 11 + 7;
-
-    // Prefer a perpendicular sidestep, never a second tile or pixel offset.
+    // Prefer a perpendicular sidestep for ordinary NPCs. Oak's Champion
+    // Room route is handled separately above, without moving the follower.
     if (direction == DIR_NORTH || direction == DIR_SOUTH)
     {
-        dirs[0] = oakEnteringChampionAisle ? DIR_EAST : DIR_WEST;
-        dirs[1] = oakEnteringChampionAisle ? DIR_WEST : DIR_EAST;
+        dirs[0] = DIR_WEST;
+        dirs[1] = DIR_EAST;
         dirs[2] = DIR_NORTH; dirs[3] = DIR_SOUTH;
     }
     else
@@ -2114,10 +2191,6 @@ static bool8 Follower_YieldForNpc(u8 npcId, u8 direction, bool8 alert)
         MoveCoords(dirs[i], &nx, &ny);
         if (!Follower_IsSafeSpawnTile(nx, ny)
          || MetatileBehavior_IsWarpPad(MapGridGetMetatileBehaviorAt(nx, ny)))
-            continue;
-        // West is Oak's next scripted tile; never use it as fallback when
-        // the east aisle is obstructed. Do not interfere with Oak instead.
-        if (oakEnteringChampionAisle && nx == fx - 1 && ny == fy)
             continue;
         // A Trainer's route is fixed. Never yield onto its sight line.
         if ((nx == px && ny == py) || (nx == tx && ny == ty)

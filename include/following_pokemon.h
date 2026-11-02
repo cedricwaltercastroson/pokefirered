@@ -33,6 +33,8 @@ u16 Follower_EndInteraction(void);
 // when a visible follower existed and the short recall pause is warranted.
 u16 Follower_BeginHealingRecall(void);
 u16 Follower_EndHealingRecall(void);
+// Champion-only post-battle return under Oak's cutscene; no slide-in.
+u16 Follower_ChampionRoomRestore(void);
 // Recall immediately before Hall of Fame machine recording animation.
 u16 Follower_BeginHallOfFameRecall(void);
 // Engine hooks for scripted PLAYER applymovement / release. This avoids

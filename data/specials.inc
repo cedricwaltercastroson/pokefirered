@@ -463,4 +463,6 @@ gSpecials:: @ 815FD60
 	def_special TimeOfDay_SleepUntil
 	@ v0.9.0.3.13: append only, keep all previous special IDs stable.
 	def_special Follower_BeginHallOfFameRecall
+	@ v0.9.0.3.50: append-only special for Champion/Oak follower choreography.
+	def_special Follower_ChampionRoomRestore
 gSpecialsEnd::

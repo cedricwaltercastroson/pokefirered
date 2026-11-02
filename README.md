@@ -29,6 +29,7 @@ To set up the repository, see [INSTALL.md](https://github.com/cedricwaltercastro
 - Nighttime colours extend to the overworld, wild battles, Trainer Battles, and Safari Zone.
 - Players can sleep in their bedroom in Pallet Town.
 - Dynamic weather includes rain and thunderstorms.
+- All 50 original Technical Machines (TM01–TM50) are available for purchase on the second floor of Celadon Department Store.
 
 <img width="715" height="480" alt="image" src="https://github.com/user-attachments/assets/ef80fe0b-c511-4643-819c-cd1a4396bc4f" />
 <img width="717" height="480" alt="image" src="https://github.com/user-attachments/assets/3f14e69b-8b2d-405f-8bc8-d8b29106b96f" />

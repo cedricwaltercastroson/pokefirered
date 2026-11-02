@@ -22,6 +22,7 @@
 #include "field_player_avatar.h"
 #include "fieldmap.h"
 #include "event_object_movement.h"
+#include "following_pokemon.h"
 #include "money.h"
 #include "quest_log.h"
 #include "script.h"
@@ -854,6 +855,19 @@ static void BuyMenuDrawObjectEvents(void)
             (u16)sViewportObjectEvents[i][X_COORD] * 16 - 8,
             (u16)sViewportObjectEvents[i][Y_COORD] * 16 + 48 - graphicsInfo->height / 2,
             2);
+        if (spriteId == MAX_SPRITES)
+            continue;
+
+        // Unlike ordinary overworld spawning, the mart preview uses temporary
+        // sprites after ResetSpriteData/FreeAllSpritePalettes. The follower's
+        // graphics use SPRITE_INVALID_TAG and its colours live in reserved
+        // OBJ palette slot 11, so CreateSprite cannot select/load them here.
+        // Repair only this follower preview; do not alter ordinary NPC palettes.
+        if (gObjectEvents[sViewportObjectEvents[i][OBJECT_EVENT_ID]].graphicsId == OBJ_EVENT_GFX_FOLLOWER)
+        {
+            gSprites[spriteId].oam.paletteNum = graphicsInfo->paletteSlot;
+            Follower_RefreshPalette();
+        }
         StartSpriteAnim(&gSprites[spriteId], sViewportObjectEvents[i][ANIM_NUM]);
     }
 }

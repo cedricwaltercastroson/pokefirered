@@ -441,25 +441,20 @@ static bool8 FadeInScreen_FogHorizontal(void)
 static void DoNothing(void)
 { }
 
-// The follower is held in OBJ slot 11. Emerald-derived follower sprites can
-// look washed out beside native FRLG objects in outdoor rain. Give ONLY this
-// reserved palette a gentle extra gamma step while raining. Both the weather
-// transition path and the palette-on-load path call the same gamma routines,
-// so an overworld refresh cannot undo the correction. Dungeon fog is excluded.
+// The following Pokemon owns OBJ palette 11. The normal rain gamma table
+// darkens this palette relative to the player's OBJ palette (which uses the
+// alternate table). Use the same ALT table for the follower ONLY while outdoor
+// rain is active. Recompute from the unfaded palette in both weather update
+// paths; never modify its source colours or the fog/night/Quest Log effects.
 #define FOLLOWER_OBJ_WEATHER_PALETTE  (16 + 11)
 
-static u8 GetOutdoorRainFollowerGammaIndex(u16 paletteIndex, u8 gammaIndex)
+static bool8 IsOutdoorRainFollowerPalette(u16 paletteIndex)
 {
-    if (paletteIndex == FOLLOWER_OBJ_WEATHER_PALETTE
-     && DynamicOverworldWeather_IsEligibleMap()
-     && (gWeatherPtr->currWeather == WEATHER_RAIN
-      || gWeatherPtr->currWeather == WEATHER_RAIN_THUNDERSTORM
-      || gWeatherPtr->currWeather == WEATHER_DOWNPOUR))
-    {
-        if (gammaIndex < 18)
-            gammaIndex++;
-    }
-    return gammaIndex;
+    return paletteIndex == FOLLOWER_OBJ_WEATHER_PALETTE
+        && DynamicOverworldWeather_IsEligibleMap()
+        && (gWeatherPtr->currWeather == WEATHER_RAIN
+         || gWeatherPtr->currWeather == WEATHER_RAIN_THUNDERSTORM
+         || gWeatherPtr->currWeather == WEATHER_DOWNPOUR);
 }
 
 static void ApplyGammaShift(u8 startPalIndex, u8 numPalettes, s8 gammaIndex)
@@ -489,12 +484,12 @@ static void ApplyGammaShift(u8 startPalIndex, u8 numPalettes, s8 gammaIndex)
             {
                 u8 r, g, b;
 
-                u8 paletteGammaIndex = GetOutdoorRainFollowerGammaIndex(curPalIndex, gammaIndex);
-
-                if (sPaletteGammaTypes[curPalIndex] == GAMMA_ALT || curPalIndex - 16 == gWeatherPtr->altGammaSpritePalIndex)
-                    gammaTable = gWeatherPtr->altGammaShifts[paletteGammaIndex];
+                if (IsOutdoorRainFollowerPalette(curPalIndex)
+                 || sPaletteGammaTypes[curPalIndex] == GAMMA_ALT
+                 || curPalIndex - 16 == gWeatherPtr->altGammaSpritePalIndex)
+                    gammaTable = gWeatherPtr->altGammaShifts[gammaIndex];
                 else
-                    gammaTable = gWeatherPtr->gammaShifts[paletteGammaIndex];
+                    gammaTable = gWeatherPtr->gammaShifts[gammaIndex];
 
                 for (i = 0; i < 16; i++)
                 {
@@ -575,12 +570,11 @@ static void ApplyGammaShiftWithBlend(u8 startPalIndex, u8 numPalettes, s8 gammaI
         {
             u8 *gammaTable;
 
-            u8 paletteGammaIndex = GetOutdoorRainFollowerGammaIndex(curPalIndex, gammaIndex);
-
-            if (sPaletteGammaTypes[curPalIndex] == GAMMA_NORMAL)
-                gammaTable = gWeatherPtr->gammaShifts[paletteGammaIndex];
+            if (sPaletteGammaTypes[curPalIndex] == GAMMA_NORMAL
+             && !IsOutdoorRainFollowerPalette(curPalIndex))
+                gammaTable = gWeatherPtr->gammaShifts[gammaIndex];
             else
-                gammaTable = gWeatherPtr->altGammaShifts[paletteGammaIndex];
+                gammaTable = gWeatherPtr->altGammaShifts[gammaIndex];
 
             for (i = 0; i < 16; i++)
             {
